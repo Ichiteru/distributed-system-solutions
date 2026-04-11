@@ -1,20 +1,28 @@
 plugins {
-  id("java")
+  id("base")
+  id("org.jetbrains.kotlin.jvm") apply false
+  id("org.jetbrains.kotlin.plugin.spring") apply false
+  id("org.jetbrains.kotlin.plugin.jpa") apply false
 }
 
 group = "com.ilchern"
 version = "1.0-SNAPSHOT"
 
-repositories {
-  mavenCentral()
+allprojects {
+  repositories {
+    mavenCentral()
+  }
 }
 
-dependencies {
-  testImplementation(platform("org.junit:junit-bom:5.10.0"))
-  testImplementation("org.junit.jupiter:junit-jupiter")
-  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
+subprojects {
+  tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+  }
 
-tasks.test {
-  useJUnitPlatform()
+  pluginManager.withPlugin("java") {
+    dependencies {
+      add("implementation", platform(project(":platform-dependencies")))
+      add("testImplementation", platform(project(":platform-dependencies")))
+    }
+  }
 }
