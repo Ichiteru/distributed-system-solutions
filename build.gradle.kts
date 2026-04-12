@@ -1,5 +1,6 @@
 plugins {
   id("base")
+  id("org.springframework.boot") apply false
   id("org.jetbrains.kotlin.jvm") apply false
   id("org.jetbrains.kotlin.plugin.spring") apply false
   id("org.jetbrains.kotlin.plugin.jpa") apply false

@@ -7,8 +7,10 @@ pluginManagement {
   }
 
   val kotlinVersion: String by settings
+  val springBootVersion: String by settings
 
   plugins {
+    id("org.springframework.boot") version springBootVersion
     id("org.jetbrains.kotlin.jvm") version kotlinVersion
     id("org.jetbrains.kotlin.plugin.spring") version kotlinVersion
     id("org.jetbrains.kotlin.plugin.jpa") version kotlinVersion
@@ -16,3 +18,4 @@ pluginManagement {
 }
 
 include(":platform-dependencies")
+include(":reactive-chat-service")
