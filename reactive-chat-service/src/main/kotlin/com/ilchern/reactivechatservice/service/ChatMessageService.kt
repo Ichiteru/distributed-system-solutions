@@ -1,6 +1,8 @@
 package com.ilchern.reactivechatservice.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatMessageRequest
+import com.ilchern.reactivechatservice.model.api.PayloadRequest
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.EventTypes
 import com.ilchern.reactivechatservice.model.domain.Payload
@@ -8,17 +10,23 @@ import com.ilchern.reactivechatservice.model.event.ChatMessageEvent
 import com.ilchern.reactivechatservice.model.event.PayloadEvent
 import com.ilchern.reactivechatservice.repository.ChatMessageRepository
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.publisher.Sinks
 import java.time.LocalDateTime
 
 interface ChatMessageService {
   fun create(request: ChatMessageRequest): Mono<ChatMessage>
+
+  fun sendMessageToChat(event: ChatMessageEvent): Mono<Int>
 }
 
 @Service
 class DefaultChatMessageService(
   private val chatMessageRepository: ChatMessageRepository,
   private val redisChatEventPublisher: RedisChatEventPublisher,
+  private val registry: SessionRegistry,
+  private val objectMapper: ObjectMapper,
 ) : ChatMessageService {
 
   override fun create(request: ChatMessageRequest): Mono<ChatMessage> {
@@ -51,5 +59,33 @@ class DefaultChatMessageService(
           )
         )
       }
+  }
+
+
+  override fun sendMessageToChat(event: ChatMessageEvent): Mono<Int> {
+
+    val payload = objectMapper.writeValueAsString( // TODO упростить payload только до нужных полей
+      ChatMessageRequest(
+        chatId = event.chatId,
+        senderId = event.senderId,
+        payload = PayloadRequest(
+          type = event.payload.type,
+          value = event.payload.value
+        )
+      )
+    )
+
+    return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
+      .filter { session -> session.userId != event.senderId }
+      .map { session -> session.outboundSink.tryEmitNext(payload) }
+      .flatMap { emitResult ->
+        when (emitResult) {
+          Sinks.EmitResult.OK -> redisChatEventPublisher.publishDelivered(event)
+            .thenReturn(1)
+          else -> redisChatEventPublisher.publishRejected(event)
+            .thenReturn(0)
+        }
+      }
+      .reduce(0) { acc, next -> acc.plus(next)}
   }
 }

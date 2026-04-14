@@ -1,39 +1,37 @@
 package com.ilchern.reactivechatservice.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.domain.EventTypes
+import com.ilchern.reactivechatservice.model.event.ChatMessageEvent
 import org.apache.logging.log4j.LogManager
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 interface RedisChatEventPublisher {
-  fun publishCreated(event: Any): Mono<Long>
-  fun publishDelivered(event: Any): Mono<Long>
-  fun publishRejected(event: Any): Mono<Long>
+  fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long>
+  fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long>
+  fun publishRejected(chatMessageEvent: ChatMessageEvent): Mono<Long>
 }
 
 @Service
 class DefaultRedisChatEventPublisher(
-  private val redisTemplate: ReactiveRedisTemplate<String, String>,
-  private val objectMapper: ObjectMapper,
+  private val redisTemplate: ReactiveRedisTemplate<String, ChatMessageEvent>,
 ) : RedisChatEventPublisher {
 
-  override fun publishCreated(event: Any): Mono<Long> {
-    return publish(EventTypes.CHAT_MESSAGE_CREATED, event)
+  override fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long> {
+    return publish(EventTypes.CHAT_MESSAGE_CREATED, chatMessageEvent)
   }
 
-  override fun publishDelivered(event: Any): Mono<Long> {
-    return publish(EventTypes.CHAT_MESSAGE_DELIVERED, event)
+  override fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long> {
+    return publish(EventTypes.CHAT_MESSAGE_DELIVERED, chatMessageEvent)
   }
 
-  override fun publishRejected(event: Any): Mono<Long> {
-    return publish(EventTypes.CHAT_MESSAGE_REJECTED, event)
+  override fun publishRejected(chatMessageEvent: ChatMessageEvent): Mono<Long> {
+    return publish(EventTypes.CHAT_MESSAGE_REJECTED, chatMessageEvent)
   }
 
-  private fun publish(channel: String, event: Any): Mono<Long> {
-    return Mono.fromCallable { objectMapper.writeValueAsString(event) }
-      .flatMap { payload -> redisTemplate.convertAndSend(channel, payload) }
+  private fun publish(channel: String, event: ChatMessageEvent): Mono<Long> {
+    return redisTemplate.convertAndSend(channel, event)
       .doOnNext { receivers ->
         log.info("Redis published event: channel={}, receivers={}", channel, receivers)
       }

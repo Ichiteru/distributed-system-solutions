@@ -4,32 +4,28 @@ import com.ilchern.reactivechatservice.model.domain.EventTypes
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.apache.logging.log4j.LogManager
-import org.springframework.data.redis.listener.ChannelTopic
-import org.springframework.data.redis.listener.ReactiveRedisMessageListenerContainer
+import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.Disposable
-import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
+import com.ilchern.reactivechatservice.model.event.ChatMessageEvent
 
 @Service
 class RedisChatEventSubscriber(
-  private val listenerContainer: ReactiveRedisMessageListenerContainer,
+  private val redisTemplate: ReactiveRedisTemplate<String, ChatMessageEvent>,
+  private val sessionRegistry: SessionRegistry,
+  private val chatMessageService: ChatMessageService,
 ) {
 
   private var subscription: Disposable? = null
 
   @PostConstruct
   fun subscribe() {
-    subscription = listenerContainer.receive(
-      ChannelTopic.of(EventTypes.CHAT_MESSAGE_CREATED),
-      ChannelTopic.of(EventTypes.CHAT_MESSAGE_DELIVERED),
-      ChannelTopic.of(EventTypes.CHAT_MESSAGE_REJECTED),
+    subscription = redisTemplate.listenToChannel(
+      EventTypes.CHAT_MESSAGE_CREATED,
+      EventTypes.CHAT_MESSAGE_DELIVERED,
+      EventTypes.CHAT_MESSAGE_REJECTED,
     )
-      .doOnNext { message ->
-        val channel = message.channel
-        val payload = message.message
-        log.info("Redis consumed event: channel={}, payload={}", channel, payload)
-      }
+      .flatMap { message -> chatMessageService.sendMessageToChat(message.message) }
       .doOnError { error ->
         log.error("Redis subscriber failed", error)
       }
