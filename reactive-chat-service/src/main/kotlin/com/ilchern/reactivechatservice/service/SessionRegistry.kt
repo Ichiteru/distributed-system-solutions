@@ -30,6 +30,7 @@ class InMemorySessionRegistry : SessionRegistry {
     log.info("[{}:{}] register sessionId={}", userId, chatId, sessionId)
   }
 
+
   override fun remove(sessionId: String): RegisteredWebSocketSession? {
     val removed = sessionsById.remove(sessionId) ?: return null
     sessionIdsByChatId[removed.chatId]?.let { ids ->

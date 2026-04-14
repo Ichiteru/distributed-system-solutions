@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.service
 
-import com.ilchern.reactivechatservice.model.domain.EventTypes
+import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.event.ChatMessageEvent
 import org.apache.logging.log4j.LogManager
 import org.springframework.data.redis.core.ReactiveRedisTemplate
@@ -19,15 +19,15 @@ class DefaultRedisChatEventPublisher(
 ) : RedisChatEventPublisher {
 
   override fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(EventTypes.CHAT_MESSAGE_CREATED, chatMessageEvent)
+    return publish(Channels.CHAT_MESSAGE_CREATED, chatMessageEvent)
   }
 
   override fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(EventTypes.CHAT_MESSAGE_DELIVERED, chatMessageEvent)
+    return publish(Channels.CHAT_MESSAGE_DELIVERED, chatMessageEvent)
   }
 
   override fun publishRejected(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(EventTypes.CHAT_MESSAGE_REJECTED, chatMessageEvent)
+    return publish(Channels.CHAT_MESSAGE_REJECTED, chatMessageEvent)
   }
 
   private fun publish(channel: String, event: ChatMessageEvent): Mono<Long> {

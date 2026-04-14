@@ -8,7 +8,6 @@ import java.time.LocalDateTime
 data class ChatMessage(
   @Id
   val id: String? = null,
-  val eventType: String,
   val correlationId: String,
   val chatId: String,
   val senderId: String,

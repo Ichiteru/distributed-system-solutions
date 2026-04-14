@@ -24,14 +24,14 @@ class ChatWebSockerHandler(
     val chatId = queryParams.getFirst("chatId") ?: error("CHAT ID NOT FOUND")
     val outboundSink = Sinks.many().unicast().onBackpressureBuffer<String>()
 
-    val outgoing = session.send(
+    val outgoing = session.send( // TODO рефакторинг - вынести в отдельный класс
       outboundSink.asFlux()
         .map(session::textMessage)
     )
 
     val incoming = session.receive()
       .map { message -> objectMapper.readValue(message.payloadAsText, ChatMessageRequest::class.java) }
-      .flatMap(chatMessageService::create)
+      .flatMap { request -> chatMessageService.create(chatId, userId, request) }
       .then()
 
     return Mono.fromSupplier { sessionRegistry.register(userId, chatId, session.id, outboundSink) }
