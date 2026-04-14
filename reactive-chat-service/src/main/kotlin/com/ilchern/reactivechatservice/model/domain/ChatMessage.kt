@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 @Document(collection = "chat_messages")
 data class ChatMessage(
   @Id
-  val id: String,
+  val id: String? = null,
   val eventType: String,
   val correlationId: String,
   val chatId: String,

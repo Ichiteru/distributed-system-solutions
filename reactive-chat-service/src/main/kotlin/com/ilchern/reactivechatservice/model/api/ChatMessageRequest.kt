@@ -1,14 +1,14 @@
 package com.ilchern.reactivechatservice.model.api
 
 data class ChatMessageRequest(
-  val eventType: String,
-  val correlationId: String,
+//  val eventType: String,
+//  val correlationId: String,
   val chatId: String,
   val senderId: String,
-  val payload: Payload,
+  val payload: PayloadRequest,
 )
 
-data class Payload(
+data class PayloadRequest(
   val type: String,
   val value: String,
 )
