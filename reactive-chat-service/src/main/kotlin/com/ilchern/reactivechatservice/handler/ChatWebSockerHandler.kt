@@ -9,7 +9,6 @@ import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
-import reactor.core.publisher.Sinks
 
 @Component
 class ChatWebSockerHandler(
@@ -22,10 +21,11 @@ class ChatWebSockerHandler(
     val queryParams = UriComponentsBuilder.fromUri(session.handshakeInfo.uri).build().queryParams
     val userId = queryParams.getFirst("userId") ?: error("USER ID NOT FOUND")
     val chatId = queryParams.getFirst("chatId") ?: error("CHAT ID NOT FOUND")
-    val outboundSink = Sinks.many().unicast().onBackpressureBuffer<String>()
 
-    val outgoing = session.send( // TODO рефакторинг - вынести в отдельный класс
-      outboundSink.asFlux()
+    val sessionSink = sessionRegistry.register(session)
+
+    val outgoing = session.send(
+      sessionSink.asFlux()
         .map(session::textMessage)
     )
 
@@ -34,8 +34,8 @@ class ChatWebSockerHandler(
       .flatMap { request -> chatMessageService.create(chatId, userId, request) }
       .then()
 
-    return Mono.fromSupplier { sessionRegistry.register(userId, chatId, session.id, outboundSink) }
-      .then(outgoing.and(incoming))
+    return outgoing
+      .and(incoming)
       .doFinally { sessionRegistry.remove(session.id) }
   }
 }

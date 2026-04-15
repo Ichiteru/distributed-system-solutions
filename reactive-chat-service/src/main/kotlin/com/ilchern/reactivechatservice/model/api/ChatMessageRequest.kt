@@ -1,5 +1,7 @@
 package com.ilchern.reactivechatservice.model.api
 
+import com.ilchern.reactivechatservice.model.domain.ChatMessageState
+
 data class ChatMessageRequest(
   val type: String,
   val value: String,
@@ -9,6 +11,6 @@ data class ChatMessageRequest(
 
 data class ChatMessageCallback(
   val correlationId: String?,
-  val success: Boolean = true,
-  val error: String? =  null
+  val error: String? =  null,
+  val state: ChatMessageState
 )

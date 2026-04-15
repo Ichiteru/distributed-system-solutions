@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono
 
 interface RedisChatEventPublisher {
   fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long>
+  fun publishAccepted(chatMessageEvent: ChatMessageEvent): Mono<Long>
   fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long>
   fun publishRejected(chatMessageEvent: ChatMessageEvent): Mono<Long>
 }
@@ -20,6 +21,10 @@ class DefaultRedisChatEventPublisher(
 
   override fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long> {
     return publish(Channels.CHAT_MESSAGE_CREATED, chatMessageEvent)
+  }
+
+  override fun publishAccepted(chatMessageEvent: ChatMessageEvent): Mono<Long> {
+    return publish(Channels.CHAT_MESSAGE_ACCEPTED, chatMessageEvent)
   }
 
   override fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long> {

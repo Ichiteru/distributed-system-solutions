@@ -3,7 +3,9 @@ package com.ilchern.reactivechatservice.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatMessageCallback
 import com.ilchern.reactivechatservice.model.api.ChatMessageRequest
+import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
+import com.ilchern.reactivechatservice.model.domain.ChatMessageState
 import com.ilchern.reactivechatservice.model.domain.Payload
 import com.ilchern.reactivechatservice.model.event.ChatMessageEvent
 import com.ilchern.reactivechatservice.model.event.PayloadEvent
@@ -16,11 +18,10 @@ import java.time.LocalDateTime
 
 interface ChatMessageService {
   fun create(chatId: String, senderId: String, request: ChatMessageRequest): Mono<ChatMessage>
-
   fun sendMessageToChat(event: ChatMessageEvent): Mono<Int>
-
   fun notifyAboutDelivery(event: ChatMessageEvent): Mono<Int>
   fun notifyAboutRejection(event: ChatMessageEvent): Mono<Int>
+  fun notifyAboutAcceptance(event: ChatMessageEvent): Mono<Int>
 }
 
 @Service
@@ -36,7 +37,7 @@ class DefaultChatMessageService(
       ChatMessage(
         chatId = chatId,
         senderId = senderId,
-        correlationId = request.correlationId, // TODO
+        correlationId = request.correlationId,
         payload = Payload(
           type = request.type,
           value = request.value,
@@ -45,19 +46,19 @@ class DefaultChatMessageService(
       )
     )
       .delayUntil { chatMessage ->
-        redisChatEventPublisher.publishCreated(
-          ChatMessageEvent(
-            id = chatMessage.id,
-            correlationId = chatMessage.correlationId,
-            chatId = chatMessage.chatId,
-            senderId = chatMessage.senderId,
-            payload = PayloadEvent(
-              type = chatMessage.payload.type,
-              value = chatMessage.payload.value,
-              createdAt = chatMessage.payload.createdAt
-            )
+        val chatMessageEvent = ChatMessageEvent(
+          id = chatMessage.id,
+          correlationId = chatMessage.correlationId,
+          chatId = chatMessage.chatId,
+          senderId = chatMessage.senderId,
+          payload = PayloadEvent(
+            type = chatMessage.payload.type,
+            value = chatMessage.payload.value,
+            createdAt = chatMessage.payload.createdAt
           )
         )
+        notifyAboutAcceptance(chatMessageEvent)
+          .then(redisChatEventPublisher.publishCreated(chatMessageEvent))
       }
   }
 
@@ -71,11 +72,18 @@ class DefaultChatMessageService(
     )
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId != event.senderId }
-      .map { session -> session.outboundSink.tryEmitNext(payload) }
-      .flatMap { emitResult ->
+//      .map { session -> session.outboundSink.tryEmitNext(payload) }
+      .flatMap { session ->
+        val emitResult = session.outboundSink.tryEmitNext(payload)
         when (emitResult) { // TODO добавить обработку на каждый emit result
           Sinks.EmitResult.OK -> redisChatEventPublisher.publishDelivered(event)
             .thenReturn(1)
+
+//          Sinks.EmitResult.FAIL_OVERFLOW ->
+          Sinks.EmitResult.FAIL_TERMINATED, Sinks.EmitResult.FAIL_CANCELLED ->
+            Mono.fromSupplier { registry.remove(session.sessionId) }
+              .thenReturn(0)
+//          Sinks.EmitResult.FAIL_NON_SERIALIZED ->
 
           else -> redisChatEventPublisher.publishRejected(event)
             .thenReturn(0)
@@ -85,26 +93,10 @@ class DefaultChatMessageService(
   }
 
   override fun notifyAboutDelivery(event: ChatMessageEvent): Mono<Int> {
-    val payload = objectMapper.writeValueAsString(ChatMessageCallback(correlationId = event.correlationId))
-
-    return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
-      .filter { session -> session.userId == event.senderId }
-      .next()
-      .map { session ->
-        val emitResult = session.outboundSink.tryEmitNext(payload)
-        when (emitResult) {
-          Sinks.EmitResult.OK -> 1
-          else -> 0
-        }
-      }
-  }
-
-  override fun notifyAboutRejection(event: ChatMessageEvent): Mono<Int> {
     val payload = objectMapper.writeValueAsString(
       ChatMessageCallback(
         correlationId = event.correlationId,
-        success = false,
-        error = "error" // TODO нормальная ошибка
+        state = ChatMessageState.DELIVERED
       )
     )
 
@@ -118,5 +110,49 @@ class DefaultChatMessageService(
           else -> 0
         }
       }
+      .defaultIfEmpty(0)
+  }
+
+  override fun notifyAboutRejection(event: ChatMessageEvent): Mono<Int> {
+    val payload = objectMapper.writeValueAsString(
+      ChatMessageCallback(
+        correlationId = event.correlationId,
+        error = "error", // TODO нормальная ошибка
+        state = ChatMessageState.REJECTED
+      )
+    )
+
+    return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
+      .filter { session -> session.userId == event.senderId }
+      .next()
+      .map { session ->
+        val emitResult = session.outboundSink.tryEmitNext(payload)
+        when (emitResult) {
+          Sinks.EmitResult.OK -> 1
+          else -> 0
+        }
+      }
+      .defaultIfEmpty(0)
+  }
+
+  override fun notifyAboutAcceptance(event: ChatMessageEvent): Mono<Int> {
+    val payload = objectMapper.writeValueAsString(
+      ChatMessageCallback(
+        correlationId = event.correlationId,
+        state = ChatMessageState.ACCEPTED
+      )
+    )
+
+    return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
+      .filter { session -> session.userId == event.senderId }
+      .next()
+      .map { session ->
+        val emitResult = session.outboundSink.tryEmitNext(payload)
+        when (emitResult) {
+          Sinks.EmitResult.OK -> 1
+          else -> 0
+        }
+      }
+      .defaultIfEmpty(0)
   }
 }
