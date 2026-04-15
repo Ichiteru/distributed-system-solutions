@@ -3,7 +3,6 @@ package com.ilchern.reactivechatservice.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatMessageCallback
 import com.ilchern.reactivechatservice.model.api.ChatMessageRequest
-import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.ChatMessageState
 import com.ilchern.reactivechatservice.model.domain.Payload
@@ -18,7 +17,7 @@ import java.time.LocalDateTime
 
 interface ChatMessageService {
   fun create(chatId: String, senderId: String, request: ChatMessageRequest): Mono<ChatMessage>
-  fun sendMessageToChat(event: ChatMessageEvent): Mono<Int>
+  fun sendMessageToReceiver(event: ChatMessageEvent): Mono<Long>
   fun notifyAboutDelivery(event: ChatMessageEvent): Mono<Int>
   fun notifyAboutRejection(event: ChatMessageEvent): Mono<Int>
   fun notifyAboutAcceptance(event: ChatMessageEvent): Mono<Int>
@@ -62,7 +61,7 @@ class DefaultChatMessageService(
       }
   }
 
-  override fun sendMessageToChat(event: ChatMessageEvent): Mono<Int> {
+  override fun sendMessageToReceiver(event: ChatMessageEvent): Mono<Long> {
     val payload = objectMapper.writeValueAsString(
       ChatMessageRequest(
         type = event.payload.type,
@@ -72,24 +71,22 @@ class DefaultChatMessageService(
     )
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId != event.senderId }
-//      .map { session -> session.outboundSink.tryEmitNext(payload) }
       .flatMap { session ->
-        val emitResult = session.outboundSink.tryEmitNext(payload)
-        when (emitResult) { // TODO добавить обработку на каждый emit result
-          Sinks.EmitResult.OK -> redisChatEventPublisher.publishDelivered(event)
-            .thenReturn(1)
+        registry.emit(session.sessionId, payload)
+          .flatMap { emitResult ->
+            when (emitResult) {
+              Sinks.EmitResult.OK -> redisChatEventPublisher.publishDelivered(event)
 
-//          Sinks.EmitResult.FAIL_OVERFLOW ->
-          Sinks.EmitResult.FAIL_TERMINATED, Sinks.EmitResult.FAIL_CANCELLED ->
-            Mono.fromSupplier { registry.remove(session.sessionId) }
-              .thenReturn(0)
-//          Sinks.EmitResult.FAIL_NON_SERIALIZED ->
+              Sinks.EmitResult.FAIL_TERMINATED, Sinks.EmitResult.FAIL_CANCELLED ->
+                Mono.fromSupplier { registry.remove(session.sessionId) }
+                  .thenReturn(0)
 
-          else -> redisChatEventPublisher.publishRejected(event)
-            .thenReturn(0)
-        }
+              else -> redisChatEventPublisher.publishRejected(event)
+
+            }
+          }
       }
-      .reduce(0) { acc, next -> acc.plus(next) }
+      .reduce(0L) { acc, next -> acc.plus(next) }
   }
 
   override fun notifyAboutDelivery(event: ChatMessageEvent): Mono<Int> {
@@ -103,12 +100,9 @@ class DefaultChatMessageService(
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId == event.senderId }
       .next()
-      .map { session ->
-        val emitResult = session.outboundSink.tryEmitNext(payload)
-        when (emitResult) {
-          Sinks.EmitResult.OK -> 1
-          else -> 0
-        }
+      .flatMap { session ->
+        registry.emit(session.sessionId, payload)
+          .thenReturn(1)
       }
       .defaultIfEmpty(0)
   }
@@ -117,7 +111,6 @@ class DefaultChatMessageService(
     val payload = objectMapper.writeValueAsString(
       ChatMessageCallback(
         correlationId = event.correlationId,
-        error = "error", // TODO нормальная ошибка
         state = ChatMessageState.REJECTED
       )
     )
@@ -125,13 +118,7 @@ class DefaultChatMessageService(
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId == event.senderId }
       .next()
-      .map { session ->
-        val emitResult = session.outboundSink.tryEmitNext(payload)
-        when (emitResult) {
-          Sinks.EmitResult.OK -> 1
-          else -> 0
-        }
-      }
+      .flatMap { session -> registry.emit(session.sessionId, payload).thenReturn(1) }
       .defaultIfEmpty(0)
   }
 
@@ -146,12 +133,8 @@ class DefaultChatMessageService(
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId == event.senderId }
       .next()
-      .map { session ->
-        val emitResult = session.outboundSink.tryEmitNext(payload)
-        when (emitResult) {
-          Sinks.EmitResult.OK -> 1
-          else -> 0
-        }
+      .flatMap { session ->
+        registry.emit(session.sessionId, payload).thenReturn(1)
       }
       .defaultIfEmpty(0)
   }

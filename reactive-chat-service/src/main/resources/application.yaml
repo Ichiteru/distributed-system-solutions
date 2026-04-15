@@ -5,3 +5,7 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+chat:
+  # 0 means Runtime.availableProcessors()
+  session-worker-pool-size: 0

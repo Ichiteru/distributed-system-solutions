@@ -26,7 +26,7 @@ class RedisChatEventSubscriber(
     )
       .flatMap { message ->
         when (message.channel) {
-          Channels.CHAT_MESSAGE_CREATED -> chatMessageService.sendMessageToChat(message.message)
+          Channels.CHAT_MESSAGE_CREATED -> chatMessageService.sendMessageToReceiver(message.message)
           Channels.CHAT_MESSAGE_DELIVERED -> chatMessageService.notifyAboutDelivery(message.message)
           Channels.CHAT_MESSAGE_REJECTED -> chatMessageService.notifyAboutRejection(message.message)
           else -> Mono.just(1)

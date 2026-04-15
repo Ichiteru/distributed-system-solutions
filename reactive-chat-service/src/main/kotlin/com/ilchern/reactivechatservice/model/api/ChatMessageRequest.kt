@@ -11,6 +11,5 @@ data class ChatMessageRequest(
 
 data class ChatMessageCallback(
   val correlationId: String?,
-  val error: String? =  null,
   val state: ChatMessageState
 )
