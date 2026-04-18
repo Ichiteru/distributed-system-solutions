@@ -12,7 +12,7 @@
    - [x] Для `chat.message` делать fail-fast reject без silent drop.
    - [x] Сохранить текущий async reject path через `chat.message.rejected` для remote overflow.
 
-[ ] 3. Доработать message flow до целевой модели из architecture doc.
+[x] 3. Доработать message flow до целевой модели из architecture doc.
    - [x] Оставить `chat.message.delivered` как событие успешной постановки в outbound queue, а не client-level ack.
    - [x] Явно разделить rate-limit reject и backpressure reject во внутренней логике, логах и метриках.
 
