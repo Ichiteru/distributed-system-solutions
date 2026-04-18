@@ -1,41 +1,41 @@
 package com.ilchern.reactivechatservice.service
 
 import com.ilchern.reactivechatservice.model.domain.Channels
-import com.ilchern.reactivechatservice.model.event.ChatMessageEvent
+import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import org.apache.logging.log4j.LogManager
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 interface RedisChatEventPublisher {
-  fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long>
-  fun publishAccepted(chatMessageEvent: ChatMessageEvent): Mono<Long>
-  fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long>
-  fun publishRejected(chatMessageEvent: ChatMessageEvent): Mono<Long>
+  fun publishCreated(chatEventEnvelope: ChatEventEnvelope): Mono<Long>
+  fun publishAccepted(chatEventEnvelope: ChatEventEnvelope): Mono<Long>
+  fun publishDelivered(chatEventEnvelope: ChatEventEnvelope): Mono<Long>
+  fun publishRejected(chatEventEnvelope: ChatEventEnvelope): Mono<Long>
 }
 
 @Service
 class DefaultRedisChatEventPublisher(
-  private val redisTemplate: ReactiveRedisTemplate<String, ChatMessageEvent>,
+  private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
 ) : RedisChatEventPublisher {
 
-  override fun publishCreated(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(Channels.CHAT_MESSAGE_CREATED, chatMessageEvent)
+  override fun publishCreated(chatEventEnvelope: ChatEventEnvelope): Mono<Long> {
+    return publish(Channels.CHAT_MESSAGE_CREATED, chatEventEnvelope)
   }
 
-  override fun publishAccepted(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(Channels.CHAT_MESSAGE_ACCEPTED, chatMessageEvent)
+  override fun publishAccepted(chatEventEnvelope: ChatEventEnvelope): Mono<Long> {
+    return publish(Channels.CHAT_MESSAGE_ACCEPTED, chatEventEnvelope)
   }
 
-  override fun publishDelivered(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(Channels.CHAT_MESSAGE_DELIVERED, chatMessageEvent)
+  override fun publishDelivered(chatEventEnvelope: ChatEventEnvelope): Mono<Long> {
+    return publish(Channels.CHAT_MESSAGE_DELIVERED, chatEventEnvelope)
   }
 
-  override fun publishRejected(chatMessageEvent: ChatMessageEvent): Mono<Long> {
-    return publish(Channels.CHAT_MESSAGE_REJECTED, chatMessageEvent)
+  override fun publishRejected(chatEventEnvelope: ChatEventEnvelope): Mono<Long> {
+    return publish(Channels.CHAT_MESSAGE_REJECTED, chatEventEnvelope)
   }
 
-  private fun publish(channel: String, event: ChatMessageEvent): Mono<Long> {
+  private fun publish(channel: String, event: ChatEventEnvelope): Mono<Long> {
     return redisTemplate.convertAndSend(channel, event)
       .doOnNext { receivers ->
         log.info("Redis published event: channel={}, receivers={}", channel, receivers)

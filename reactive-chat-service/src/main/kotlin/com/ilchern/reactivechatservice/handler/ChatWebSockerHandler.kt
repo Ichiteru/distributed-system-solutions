@@ -1,7 +1,8 @@
 package com.ilchern.reactivechatservice.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ilchern.reactivechatservice.model.api.ChatMessageRequest
+import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
 import com.ilchern.reactivechatservice.service.ChatMessageService
 import com.ilchern.reactivechatservice.service.SessionRegistry
 import org.springframework.stereotype.Component
@@ -9,6 +10,7 @@ import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
+import java.util.Locale
 
 @Component
 class ChatWebSockerHandler(
@@ -21,6 +23,10 @@ class ChatWebSockerHandler(
     val queryParams = UriComponentsBuilder.fromUri(session.handshakeInfo.uri).build().queryParams
     val userId = queryParams.getFirst("userId") ?: error("USER ID NOT FOUND")
     val chatId = queryParams.getFirst("chatId") ?: error("CHAT ID NOT FOUND")
+    queryParams.getFirst("role")
+      ?.uppercase(Locale.getDefault())
+      ?.let(ChatParticipantRole::valueOf)
+      ?: error("ROLE NOT FOUND")
 
     val sessionSink = sessionRegistry.register(session)
 
@@ -30,8 +36,8 @@ class ChatWebSockerHandler(
     )
 
     val incoming = session.receive()
-      .map { message -> objectMapper.readValue(message.payloadAsText, ChatMessageRequest::class.java) }
-      .flatMap { request -> chatMessageService.create(chatId, userId, request) }
+      .map { message -> objectMapper.readValue(message.payloadAsText, ChatEventEnvelope::class.java) }
+      .flatMap { envelope -> chatMessageService.handleIncoming(chatId, userId, envelope) }
       .then()
 
     return outgoing
