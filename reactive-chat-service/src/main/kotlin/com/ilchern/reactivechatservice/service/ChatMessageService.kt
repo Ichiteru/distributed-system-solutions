@@ -28,6 +28,7 @@ class DefaultChatMessageService(
   private val chatMessageRepository: ChatMessageRepository,
   private val redisChatEventPublisher: RedisChatEventPublisher,
   private val registry: SessionRegistry,
+  private val sessionEmitService: SessionEmitService,
   private val objectMapper: ObjectMapper,
 ) : ChatMessageService {
 
@@ -72,7 +73,7 @@ class DefaultChatMessageService(
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId != event.senderId }
       .flatMap { session ->
-        registry.emit(session.sessionId, payload)
+        sessionEmitService.emit(session, payload)
           .flatMap { emitResult ->
             when (emitResult) {
               Sinks.EmitResult.OK -> redisChatEventPublisher.publishDelivered(event)
@@ -101,7 +102,7 @@ class DefaultChatMessageService(
       .filter { session -> session.userId == event.senderId }
       .next()
       .flatMap { session ->
-        registry.emit(session.sessionId, payload)
+        sessionEmitService.emit(session, payload)
           .thenReturn(1)
       }
       .defaultIfEmpty(0)
@@ -118,7 +119,7 @@ class DefaultChatMessageService(
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId == event.senderId }
       .next()
-      .flatMap { session -> registry.emit(session.sessionId, payload).thenReturn(1) }
+      .flatMap { session -> sessionEmitService.emit(session, payload).thenReturn(1) }
       .defaultIfEmpty(0)
   }
 
@@ -134,7 +135,7 @@ class DefaultChatMessageService(
       .filter { session -> session.userId == event.senderId }
       .next()
       .flatMap { session ->
-        registry.emit(session.sessionId, payload).thenReturn(1)
+        sessionEmitService.emit(session, payload).thenReturn(1)
       }
       .defaultIfEmpty(0)
   }

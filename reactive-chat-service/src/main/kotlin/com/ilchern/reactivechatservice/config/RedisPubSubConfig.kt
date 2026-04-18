@@ -25,9 +25,7 @@ class RedisPubSubConfig {
     objectMapper: ObjectMapper,
   ) : ReactiveRedisTemplate<String, ChatMessageEvent> {
     val keySerializer = StringRedisSerializer()
-    val valueSerializer = Jackson2JsonRedisSerializer(ChatMessageEvent::class.java).apply {
-      setObjectMapper(objectMapper)
-    }
+    val valueSerializer = Jackson2JsonRedisSerializer(objectMapper, ChatMessageEvent::class.java)
 
     return ReactiveRedisTemplate(
       factory,
