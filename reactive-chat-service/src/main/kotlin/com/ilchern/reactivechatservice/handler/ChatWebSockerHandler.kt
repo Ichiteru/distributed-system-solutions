@@ -26,7 +26,7 @@ class ChatWebSockerHandler(
 
     val outgoing = session.send(
       sessionSink.asFlux()
-        .map(session::textMessage)
+        .map { outboundMessage -> session.textMessage(outboundMessage.payload) }
     )
 
     val incoming = session.receive()

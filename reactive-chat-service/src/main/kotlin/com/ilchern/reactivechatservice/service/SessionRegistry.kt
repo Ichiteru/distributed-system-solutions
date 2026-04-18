@@ -1,5 +1,10 @@
 package com.ilchern.reactivechatservice.service
 
+import com.ilchern.reactivechatservice.config.OutboundBufferProperties
+import com.ilchern.reactivechatservice.service.backpressure.BackpressurePolicy
+import com.ilchern.reactivechatservice.service.backpressure.BoundedBackpressureQueue
+import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
+import io.micrometer.core.instrument.MeterRegistry
 import org.apache.logging.log4j.LogManager
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.socket.WebSocketSession
@@ -8,7 +13,7 @@ import reactor.core.publisher.Sinks
 import java.util.concurrent.ConcurrentHashMap
 
 interface SessionRegistry {
-  fun register(session: WebSocketSession): Sinks.Many<String>
+  fun register(session: WebSocketSession): Sinks.Many<OutboundMessage>
   fun remove(sessionId: String): RegisteredWebSocketSession?
   fun getSessionsByChatId(chatId: String): List<RegisteredWebSocketSession>
 }
@@ -16,22 +21,31 @@ interface SessionRegistry {
 @Service
 class InMemorySessionRegistry(
   private val sessionEmitService: SessionEmitService,
+  private val backpressurePolicy: BackpressurePolicy,
+  private val outboundBufferProperties: OutboundBufferProperties,
+  private val meterRegistry: MeterRegistry,
 ) : SessionRegistry {
 
   private val sessionsById = ConcurrentHashMap<String, RegisteredWebSocketSession>()
   private val sessionIdsByChatId = ConcurrentHashMap<String, MutableSet<String>>()
 
-  override fun register(session: WebSocketSession) : Sinks.Many<String> {
+  override fun register(session: WebSocketSession) : Sinks.Many<OutboundMessage> {
     val queryParams = UriComponentsBuilder.fromUri(session.handshakeInfo.uri).build().queryParams
     val chatId = queryParams.getFirst("chatId") ?: error("CHAT ID NOT FOUND")
     val userId = queryParams.getFirst("userId") ?: error("CHAT ID NOT FOUND")
     val workerIndex = sessionEmitService.resolveWorkerIndex(session.id)
 
+    val outboundQueue = BoundedBackpressureQueue(
+      capacity = outboundBufferProperties.bufferSize,
+      backpressurePolicy = backpressurePolicy,
+      meterRegistry = meterRegistry,
+    )
+
     val registeredSession = RegisteredWebSocketSession(
       sessionId = session.id,
       userId = queryParams.getFirst("userId") ?: error("USER ID NOT FOUND"),
       chatId = chatId,
-      outboundSink = Sinks.many().unicast().onBackpressureBuffer(),
+      outboundSink = Sinks.many().unicast().onBackpressureBuffer(outboundQueue),
       workerIndex = workerIndex,
     )
 
@@ -69,6 +83,6 @@ data class RegisteredWebSocketSession(
   val sessionId: String,
   val userId: String,
   val chatId: String,
-  val outboundSink: Sinks.Many<String>,
+  val outboundSink: Sinks.Many<OutboundMessage>,
   val workerIndex: Int,
 )

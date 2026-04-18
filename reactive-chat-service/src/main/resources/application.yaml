@@ -9,6 +9,8 @@ spring:
 chat:
   # 0 means Runtime.availableProcessors()
   session-worker-pool-size: 0
+  outbound:
+    buffer-size: 256
   rate-limit:
     enabled: true
     key-prefix: chat:rate-limit:user
