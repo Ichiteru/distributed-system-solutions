@@ -5,6 +5,4 @@ import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface ChatMessageRepository : ReactiveMongoRepository<ChatMessage, String> {
-
-}
+interface ChatMessageRepository : ReactiveMongoRepository<ChatMessage, String>

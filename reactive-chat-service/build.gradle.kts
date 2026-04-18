@@ -16,8 +16,6 @@ dependencies {
   implementation("io.micrometer:micrometer-registry-prometheus")
   implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
   implementation("org.jetbrains.kotlin:kotlin-reflect")
-  implementation("com.bucket4j:bucket4j_jdk17-core")
-  implementation("com.bucket4j:bucket4j_jdk17-lettuce")
 
   testImplementation("org.springframework.boot:spring-boot-starter-test") {
     exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

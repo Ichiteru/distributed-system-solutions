@@ -29,37 +29,66 @@ class DefaultChatMessageService(
   private val redisChatEventPublisher: RedisChatEventPublisher,
   private val registry: SessionRegistry,
   private val sessionEmitService: SessionEmitService,
+  private val rateLimiterService: RateLimiterService,
   private val objectMapper: ObjectMapper,
 ) : ChatMessageService {
 
   override fun create(chatId: String, senderId: String, request: ChatMessageRequest): Mono<ChatMessage> {
-    return chatMessageRepository.save(
-      ChatMessage(
+    return rateLimiterService.tryConsume(senderId)
+      .flatMap { decision ->
+        if (decision.allowed) {
+          chatMessageRepository.save(
+            ChatMessage(
+              chatId = chatId,
+              senderId = senderId,
+              correlationId = request.correlationId,
+              payload = Payload(
+                type = request.type,
+                value = request.value,
+                createdAt = LocalDateTime.now()
+              )
+            )
+          )
+            .delayUntil { chatMessage ->
+              val chatMessageEvent = ChatMessageEvent(
+                id = chatMessage.id,
+                correlationId = chatMessage.correlationId,
+                chatId = chatMessage.chatId,
+                senderId = chatMessage.senderId,
+                payload = PayloadEvent(
+                  type = chatMessage.payload.type,
+                  value = chatMessage.payload.value,
+                  createdAt = chatMessage.payload.createdAt
+                )
+              )
+              notifyAboutAcceptance(chatMessageEvent)
+                .then(redisChatEventPublisher.publishCreated(chatMessageEvent))
+            }
+        } else {
+          notifyAboutRateLimitRejection(chatId, senderId, request)
+            .then(Mono.empty())
+        }
+      }
+  }
+
+  private fun notifyAboutRateLimitRejection(
+    chatId: String,
+    senderId: String,
+    request: ChatMessageRequest,
+  ): Mono<Int> {
+    return notifyAboutRejection(
+      ChatMessageEvent(
+        id = null,
+        correlationId = request.correlationId,
         chatId = chatId,
         senderId = senderId,
-        correlationId = request.correlationId,
-        payload = Payload(
+        payload = PayloadEvent(
           type = request.type,
           value = request.value,
-          createdAt = LocalDateTime.now()
-        )
+          createdAt = LocalDateTime.now(),
+        ),
       )
     )
-      .delayUntil { chatMessage ->
-        val chatMessageEvent = ChatMessageEvent(
-          id = chatMessage.id,
-          correlationId = chatMessage.correlationId,
-          chatId = chatMessage.chatId,
-          senderId = chatMessage.senderId,
-          payload = PayloadEvent(
-            type = chatMessage.payload.type,
-            value = chatMessage.payload.value,
-            createdAt = chatMessage.payload.createdAt
-          )
-        )
-        notifyAboutAcceptance(chatMessageEvent)
-          .then(redisChatEventPublisher.publishCreated(chatMessageEvent))
-      }
   }
 
   override fun sendMessageToReceiver(event: ChatMessageEvent): Mono<Long> {

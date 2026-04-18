@@ -9,3 +9,10 @@ spring:
 chat:
   # 0 means Runtime.availableProcessors()
   session-worker-pool-size: 0
+  rate-limit:
+    enabled: true
+    key-prefix: chat:rate-limit:user
+    capacity: 20
+    refill-tokens: 20
+    refill-period: 1s
+    ttl: 2m
