@@ -4,5 +4,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-@EnableConfigurationProperties(OutboundBufferProperties::class)
+@EnableConfigurationProperties(
+  value = [
+    OutboundBufferProperties::class,
+    HistoryProperties::class,
+    RateLimitProperties::class
+  ]
+)
 class BackpressureConfig

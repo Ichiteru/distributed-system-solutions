@@ -1,5 +1,6 @@
 package com.ilchern.reactivechatservice.service
 
+import com.ilchern.reactivechatservice.config.HistoryProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
@@ -10,6 +11,8 @@ import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.Payload
 import com.ilchern.reactivechatservice.repository.ChatMessageRepository
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -20,6 +23,7 @@ import java.util.UUID
 
 interface ChatMessageService {
   fun handleIncoming(chatId: String, senderId: String, envelope: ChatEventEnvelope): Mono<Void>
+  fun loadRecentHistory(chatId: String): Flux<ChatEventEnvelope>
   fun sendEventToReceivers(event: ChatEventEnvelope): Mono<Long>
   fun notifyAboutDelivery(event: ChatEventEnvelope): Mono<Int>
   fun notifyAboutRejection(event: ChatEventEnvelope): Mono<Int>
@@ -33,6 +37,7 @@ class DefaultChatMessageService(
   private val registry: SessionRegistry,
   private val sessionEmitService: SessionEmitService,
   private val rateLimiterService: RateLimiterService,
+  private val historyProperties: HistoryProperties,
   private val objectMapper: ObjectMapper,
 ) : ChatMessageService {
 
@@ -46,6 +51,21 @@ class DefaultChatMessageService(
 
       else -> Mono.empty()
     }
+  }
+
+  override fun loadRecentHistory(chatId: String): Flux<ChatEventEnvelope> {
+    val pageRequest = PageRequest.of(
+      0,
+      historyProperties.reconnectLimit,
+      Sort.by(Sort.Direction.DESC, "payload.createdAt"),
+    )
+
+    return chatMessageRepository.findByChatId(chatId, pageRequest)
+      .collectList()
+      .flatMapMany { messages ->
+        Flux.fromIterable(messages.asReversed())
+      }
+      .map(::buildMessageCreatedEnvelope)
   }
 
   private fun createMessage(envelope: ChatEventEnvelope): Mono<ChatMessage> {
@@ -237,7 +257,7 @@ class DefaultChatMessageService(
       correlationId = chatMessage.correlationId,
       chatId = chatMessage.chatId,
       senderId = chatMessage.senderId,
-      timestamp = Instant.now(),
+      timestamp = chatMessage.payload.createdAt.atZone(java.time.ZoneOffset.UTC).toInstant(),
       payload = objectMapper.valueToTree(
         ChatMessagePayload(
           type = chatMessage.payload.type,

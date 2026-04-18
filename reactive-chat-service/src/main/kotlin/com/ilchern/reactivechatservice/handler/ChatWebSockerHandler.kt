@@ -5,10 +5,13 @@ import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
 import com.ilchern.reactivechatservice.service.ChatMessageService
 import com.ilchern.reactivechatservice.service.SessionRegistry
+import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
+import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import org.springframework.web.util.UriComponentsBuilder
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.Locale
 
@@ -29,9 +32,12 @@ class ChatWebSockerHandler(
       ?: error("ROLE NOT FOUND")
 
     val sessionSink = sessionRegistry.register(session)
+    val history = chatMessageService.loadRecentHistory(chatId)
+      .map(objectMapper::writeValueAsString)
+      .map { payload -> OutboundMessage(payload, OutboundMessagePriority.CRITICAL) }
 
     val outgoing = session.send(
-      sessionSink.asFlux()
+      Flux.concat(history, sessionSink.asFlux())
         .map { outboundMessage -> session.textMessage(outboundMessage.payload) }
     )
 

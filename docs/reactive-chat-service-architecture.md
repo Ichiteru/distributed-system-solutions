@@ -20,7 +20,7 @@
 flowchart LR
     Sender["Sender WebSocket Client"] --> A["Chat Service A<br/>WebFlux WS Handler"]
 
-    A --> RL["Rate Limit<br/>Bucket4j / Redis"]
+    A --> RL["Rate Limit<br/>Redis Lua Token Bucket"]
     RL --> BP["Admission Control<br/>Backpressure Policy"]
     BP --> Mongo["MongoDB<br/>Message History"]
 
@@ -159,7 +159,7 @@ MongoDB is the durable source of message history. Redis Pub/Sub is used only for
 - `SessionRegistry`: tracks active sessions by `chatId` and `userId` on the current instance.
 - `OutboundSessionQueue`: bounded per-session queue implemented with Reactor `Sinks.Many`.
 - `BackpressurePolicy`: decides `ACCEPT`, `DROP_EPHEMERAL`, or `REJECT_CRITICAL`.
-- `RateLimiterService`: configurable per-user message rate limit using Bucket4j.
+- `RateLimiterService`: configurable per-user message rate limit using Redis Lua token bucket.
 - `MessageService`: validates, persists messages, publishes Redis events, returns accepted/error envelopes.
 - `RedisChatEventPublisher`: publishes `created`, `delivered`, and `rejected` events.
 - `RedisChatEventSubscriber`: receives events from other instances and routes them to local sessions.
@@ -201,7 +201,9 @@ MongoDB is the durable source of message history. Redis Pub/Sub is used only for
 Configurable properties:
 
 - `chat.outbound.buffer-size`, default for v1: `256` events per WebSocket session.
-- `chat.rate-limit.messages-per-second`, default for v1: `20`.
+- `chat.rate-limit.capacity`, default for v1: `20`.
+- `chat.rate-limit.refill-tokens`, default for v1: `20`.
+- `chat.rate-limit.refill-period`, default for v1: `1s`.
 - `chat.history.reconnect-limit`, default for v1: `100` recent messages.
 - `chat.delivery.latency.sla-p95-ms`, target: `250`.
 
@@ -223,6 +225,7 @@ Unit tests:
 - ephemeral events are dropped first on buffer pressure;
 - critical messages are rejected with `TOO_MANY_MESSAGES`;
 - rate limit rejects excessive sender traffic;
+- rate limiter works in fail-closed mode when Redis backend is unavailable;
 - `delivered` is emitted only after queue acceptance.
 
 Integration tests with Testcontainers:
@@ -242,6 +245,7 @@ Load tests:
 ## Assumptions
 
 - v1 uses Redis Pub/Sub only for inter-instance chat events, not as durable message storage.
+- v1 uses Redis Lua script execution for atomic distributed token bucket decisions.
 - MongoDB is the durable source of message history.
 - `chat.message.delivered` means accepted into receiver outbound queue, not client-level ack.
 - Strict pre-persistence fail-fast for a recipient connected to another service instance is intentionally out of scope for v1 because it requires request/reply or reservation semantics beyond plain Pub/Sub.

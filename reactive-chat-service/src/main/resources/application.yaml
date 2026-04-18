@@ -11,6 +11,8 @@ chat:
   session-worker-pool-size: 0
   outbound:
     buffer-size: 256
+  history:
+    reconnect-limit: 100
   rate-limit:
     enabled: true
     key-prefix: chat:rate-limit:user

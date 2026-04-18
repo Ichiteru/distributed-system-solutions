@@ -45,9 +45,21 @@ class RedisRateLimiterService(
   meterRegistry: MeterRegistry,
 ) : RateLimiterService {
 
-  private val allowedCounter = meterRegistry.counter("chat_rate_limit_allowed_total")
-  private val rejectedCounter = meterRegistry.counter("chat_rate_limit_rejected_total")
-  private val backendErrorCounter = meterRegistry.counter("chat_rate_limit_backend_errors_total")
+  private val requestCounter = meterRegistry.counter(
+    "chat_rate_limit_requests_total",
+    "outcome",
+    "allowed",
+  )
+  private val rejectedCounter = meterRegistry.counter(
+    "chat_rate_limit_requests_total",
+    "outcome",
+    "rejected",
+  )
+  private val backendErrorCounter = meterRegistry.counter(
+    "chat_rate_limit_requests_total",
+    "outcome",
+    "backend_error",
+  )
   private val clock = Clock.systemUTC()
 
   override fun tryConsume(userId: String): Mono<RateLimitDecision> {
@@ -75,11 +87,12 @@ class RedisRateLimiterService(
       .map(::parseDecision)
       .doOnNext { decision ->
         if (decision.allowed) {
-          allowedCounter.increment()
+          requestCounter.increment()
           log.info(
-            "Rate limit allowed: userId={}, remainingTokens={}",
+            "Rate limit allowed: userId={}, remainingTokens={}, retryAfterMillis={}",
             userId,
             decision.remainingTokens,
+            decision.retryAfterMillis,
           )
         } else {
           rejectedCounter.increment()
@@ -93,7 +106,12 @@ class RedisRateLimiterService(
       }
       .onErrorResume { error ->
         backendErrorCounter.increment()
-        log.error("Rate limiter backend failed, rejecting request: userId={}", userId, error)
+        log.error(
+          "Rate limiter backend failed, rejecting request in fail-closed mode: userId={}, fallbackRetryAfterMillis={}",
+          userId,
+          rateLimitProperties.refillPeriod.toMillis(),
+          error,
+        )
         Mono.just(RateLimitDecision.rejected(rateLimitProperties.refillPeriod.toMillis()))
       }
   }
