@@ -9,3 +9,9 @@ scrape_configs:
       - targets:
           - reactive-chat-service-1:8080
           - reactive-chat-service-2:8080
+
+  - job_name: reactive-chat-service-local
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - host.docker.internal:8081

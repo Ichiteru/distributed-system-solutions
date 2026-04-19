@@ -1,0 +1,37 @@
+SERVER:
+  PORT: 8080
+
+SPRING:
+  DATA:
+    MONGODB:
+      URI: mongodb://mongo:27017/reactive_chat_service
+    REDIS:
+      HOST: redis
+      PORT: 6379
+
+MANAGEMENT:
+  ENDPOINTS:
+    WEB:
+      EXPOSURE:
+        INCLUDE: health,info,metrics,prometheus
+  ENDPOINT:
+    HEALTH:
+      PROBES:
+        ENABLED: true
+  METRICS:
+    TAGS:
+      APPLICATION: reactive-chat-service
+
+CHAT:
+  SESSION_WORKER_POOL_SIZE: 0
+  OUTBOUND:
+    BUFFER_SIZE: 256
+  HISTORY:
+    RECONNECT_LIMIT: 100
+  RATE_LIMIT:
+    ENABLED: true
+    KEY_PREFIX: chat:rate-limit:user
+    CAPACITY: 20
+    REFILL_TOKENS: 20
+    REFILL_PERIOD: 1s
+    TTL: 2m

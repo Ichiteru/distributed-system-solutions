@@ -55,13 +55,13 @@
    - [ ] Проверка SLA по latency (`p95 < 250 ms`) на тестовом стенде.
    - [ ] Снять и оформить метрики “до/после” для портфолио.
 
-[ ] 10. Docker и multi-instance deployment через `nginx`.
-   - [ ] Добавить `Dockerfile` для `reactive-chat-service`.
-   - [ ] Добавить `docker-compose` для MongoDB, Redis, `nginx` и `N` инстансов `reactive-chat-service`.
-   - [ ] Добавить `nginx.conf` с upstream для `reactive-chat-service-*` и поддержкой WebSocket upgrade.
-   - [ ] Вынести конфигурацию инстансов через env vars: порты, Mongo URI, Redis host/port, worker pool size.
-   - [ ] Подготовить локальный сценарий запуска нескольких инстансов через `nginx` для демонстрации Redis Pub/Sub delivery и reconnect/history replay.
-   - [ ] Проверить, что multi-instance запуск воспроизводим без ручных правок конфигов.
+[x] 10. Docker и multi-instance deployment через `nginx`.
+   - [x] Добавить `Dockerfile` для `reactive-chat-service`.
+   - [x] Добавить `docker-compose` для MongoDB, Redis, `nginx` и `N` инстансов `reactive-chat-service`.
+   - [x] Добавить `nginx.conf` с upstream для `reactive-chat-service-*` и поддержкой WebSocket upgrade.
+   - [x] Вынести конфигурацию инстансов через env vars: порты, Mongo URI, Redis host/port, worker pool size.
+   - [x] Подготовить локальный сценарий запуска нескольких инстансов через `nginx` для демонстрации Redis Pub/Sub delivery и reconnect/history replay.
+   - [x] Проверить, что multi-instance запуск воспроизводим без ручных правок конфигов.
 
 [ ] 11. Финальная документация и acceptance artifacts.
    - [x] Обновить `reactive-chat-service-architecture.md` под фактическую реализацию rate limiter и reconnect/history.
