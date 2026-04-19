@@ -4,7 +4,6 @@ import com.ilchern.reactivechatservice.config.OutboundBufferProperties
 import com.ilchern.reactivechatservice.service.backpressure.BackpressurePolicy
 import com.ilchern.reactivechatservice.service.backpressure.BoundedBackpressureQueue
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
-import io.micrometer.core.instrument.MeterRegistry
 import org.apache.logging.log4j.LogManager
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.socket.WebSocketSession
@@ -23,7 +22,7 @@ class InMemorySessionRegistry(
   private val sessionEmitService: SessionEmitService,
   private val backpressurePolicy: BackpressurePolicy,
   private val outboundBufferProperties: OutboundBufferProperties,
-  private val meterRegistry: MeterRegistry,
+  private val chatMetrics: ChatMetrics,
 ) : SessionRegistry {
 
   private val sessionsById = ConcurrentHashMap<String, RegisteredWebSocketSession>()
@@ -38,7 +37,7 @@ class InMemorySessionRegistry(
     val outboundQueue = BoundedBackpressureQueue(
       capacity = outboundBufferProperties.bufferSize,
       backpressurePolicy = backpressurePolicy,
-      meterRegistry = meterRegistry,
+      chatMetrics = chatMetrics,
     )
 
     val registeredSession = RegisteredWebSocketSession(
@@ -46,11 +45,13 @@ class InMemorySessionRegistry(
       userId = queryParams.getFirst("userId") ?: error("USER ID NOT FOUND"),
       chatId = chatId,
       outboundSink = Sinks.many().unicast().onBackpressureBuffer(outboundQueue),
+      outboundQueue = outboundQueue,
       workerIndex = workerIndex,
     )
 
     sessionsById[registeredSession.sessionId] = registeredSession
     sessionIdsByChatId.computeIfAbsent(chatId) { ConcurrentHashMap.newKeySet() }.add(registeredSession.sessionId)
+    chatMetrics.recordSessionRegistered()
     log.info("[{}:{}] register sessionId={}, workerIndex={}", userId, chatId, registeredSession.sessionId, workerIndex)
 
     return registeredSession.outboundSink
@@ -64,6 +65,8 @@ class InMemorySessionRegistry(
         sessionIdsByChatId.remove(removed.chatId, ids)
       }
     }
+    removed.outboundQueue.clearAndRecordDroppedItems()
+    chatMetrics.recordSessionRemoved()
     sessionEmitService.complete(removed)
     log.info("[{}:{}] remove sessionId={}", removed.userId, removed.chatId, sessionId)
     return removed
@@ -84,5 +87,6 @@ data class RegisteredWebSocketSession(
   val userId: String,
   val chatId: String,
   val outboundSink: Sinks.Many<OutboundMessage>,
+  val outboundQueue: BoundedBackpressureQueue,
   val workerIndex: Int,
 )

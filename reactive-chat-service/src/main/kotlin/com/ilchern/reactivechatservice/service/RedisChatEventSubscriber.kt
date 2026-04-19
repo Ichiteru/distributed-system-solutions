@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono
 class RedisChatEventSubscriber(
   private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
   private val chatMessageService: ChatMessageService,
+  private val chatMetrics: ChatMetrics,
 ) {
   private var subscription: Disposable? = null
 
@@ -25,6 +26,7 @@ class RedisChatEventSubscriber(
       Channels.CHAT_MESSAGE_REJECTED,
     )
       .flatMap { message ->
+        chatMetrics.recordRedisConsumed(message.channel)
         when (message.channel) {
           Channels.CHAT_MESSAGE_CREATED -> chatMessageService.sendEventToReceivers(message.message)
           Channels.CHAT_MESSAGE_DELIVERED -> chatMessageService.notifyAboutDelivery(message.message)

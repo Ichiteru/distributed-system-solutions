@@ -38,6 +38,7 @@ class DefaultChatMessageService(
   private val sessionEmitService: SessionEmitService,
   private val rateLimiterService: RateLimiterService,
   private val historyProperties: HistoryProperties,
+  private val chatMetrics: ChatMetrics,
   private val objectMapper: ObjectMapper,
 ) : ChatMessageService {
 
@@ -86,12 +87,14 @@ class DefaultChatMessageService(
               )
             )
           )
+            .doOnNext { chatMetrics.recordMessageAccepted() }
             .delayUntil { chatMessage ->
               val createdEnvelope = buildMessageCreatedEnvelope(chatMessage)
               notifyAboutAcceptance(createdEnvelope)
                 .then(redisChatEventPublisher.publishCreated(createdEnvelope))
             }
         } else {
+          chatMetrics.recordMessageRejected()
           notifyAboutRateLimitRejection(envelope)
             .then(Mono.empty())
         }
@@ -149,6 +152,7 @@ class DefaultChatMessageService(
             when (emitResult) {
               Sinks.EmitResult.OK -> {
                 if (priority == OutboundMessagePriority.CRITICAL) {
+                  chatMetrics.recordDeliveryLatency(event.timestamp)
                   redisChatEventPublisher.publishDelivered(event)
                 } else {
                   Mono.just(0)
@@ -161,6 +165,7 @@ class DefaultChatMessageService(
 
               else -> {
                 if (priority == OutboundMessagePriority.CRITICAL) {
+                  chatMetrics.recordMessageRejected()
                   redisChatEventPublisher.publishRejected(event)
                 } else {
                   Mono.just(0)

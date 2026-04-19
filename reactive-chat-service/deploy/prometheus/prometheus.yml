@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: reactive-chat-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - reactive-chat-service-1:8080
+          - reactive-chat-service-2:8080

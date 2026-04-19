@@ -28,14 +28,14 @@
    - [x] Обновить архитектурный документ: используется Redis Lua token bucket, а не Bucket4j.
    - [x] Проверить и задокументировать fail-closed поведение при ошибке Redis.
 
-[ ] 6. Закрыть базовую observability.
-   - [ ] Добавить `chat_ws_sessions_active`.
-   - [ ] Добавить `chat_outbound_buffer_size`.
+[x] 6. Закрыть базовую observability.
+   - [x] Добавить `chat_ws_sessions_active`.
+   - [x] Добавить `chat_outbound_buffer_size`.
    - [x] Добавить `chat_outbound_events_dropped_total`.
-   - [ ] Добавить `chat_messages_rejected_total` и `chat_messages_reject_rate`.
-   - [ ] Добавить `chat_delivery_latency_seconds`.
-   - [ ] Добавить `chat_redis_events_published_total` и `chat_redis_events_consumed_total`.
-   - [ ] Подготовить минимальный dashboard или хотя бы список Prometheus queries для демо.
+   - [x] Добавить `chat_messages_rejected_total` и `chat_messages_reject_rate`.
+   - [x] Добавить `chat_delivery_latency_seconds`.
+   - [x] Добавить `chat_redis_events_published_total` и `chat_redis_events_consumed_total`.
+   - [x] Подготовить минимальный dashboard или хотя бы список Prometheus queries для демо.
 
 [ ] 7. Unit tests.
    - [ ] Backpressure policy: drop ephemeral first, reject critical on overflow.

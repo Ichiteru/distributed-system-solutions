@@ -1,27 +1,28 @@
 package com.ilchern.reactivechatservice.service.backpressure
 
-import io.micrometer.core.instrument.MeterRegistry
+import com.ilchern.reactivechatservice.service.ChatMetrics
 import java.util.AbstractQueue
 import java.util.ArrayDeque
 
 class BoundedBackpressureQueue(
   private val capacity: Int,
   private val backpressurePolicy: BackpressurePolicy,
-  meterRegistry: MeterRegistry,
+  private val chatMetrics: ChatMetrics,
 ) : AbstractQueue<OutboundMessage>() {
 
   private val queue = ArrayDeque<OutboundMessage>(capacity)
-  private val droppedEphemeralCounter = meterRegistry.counter("chat_outbound_events_dropped_total")
 
   override fun offer(element: OutboundMessage): Boolean = synchronized(queue) {
     if (queue.size < capacity) {
       queue.addLast(element)
+      chatMetrics.incrementOutboundBufferSize()
       return true
     }
 
     return when (backpressurePolicy.onOverflow(element, queue)) {
       BackpressureDecision.ACCEPT -> {
         queue.addLast(element)
+        chatMetrics.incrementOutboundBufferSize()
         true
       }
 
@@ -31,7 +32,11 @@ class BoundedBackpressureQueue(
   }
 
   override fun poll(): OutboundMessage? = synchronized(queue) {
-    queue.pollFirst()
+    val polled = queue.pollFirst()
+    if (polled != null) {
+      chatMetrics.decrementOutboundBufferSize()
+    }
+    polled
   }
 
   override fun peek(): OutboundMessage? = synchronized(queue) {
@@ -45,9 +50,15 @@ class BoundedBackpressureQueue(
     ArrayList(queue).iterator()
   }
 
+  fun clearAndRecordDroppedItems() = synchronized(queue) {
+    val clearedItems = queue.size
+    queue.clear()
+    chatMetrics.decrementOutboundBufferSize(clearedItems)
+  }
+
   private fun dropEphemeralAndContinue(incoming: OutboundMessage): Boolean {
     if (incoming.priority == OutboundMessagePriority.EPHEMERAL) {
-      droppedEphemeralCounter.increment()
+      chatMetrics.recordOutboundEventDropped(incoming.priority)
       return true
     }
 
@@ -55,7 +66,7 @@ class BoundedBackpressureQueue(
     while (iterator.hasNext()) {
       if (iterator.next().priority == OutboundMessagePriority.EPHEMERAL) {
         iterator.remove()
-        droppedEphemeralCounter.increment()
+        chatMetrics.recordOutboundEventDropped(OutboundMessagePriority.EPHEMERAL)
         queue.addLast(incoming)
         return true
       }

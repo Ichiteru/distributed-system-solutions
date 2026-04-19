@@ -17,6 +17,7 @@ interface RedisChatEventPublisher {
 @Service
 class DefaultRedisChatEventPublisher(
   private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
+  private val chatMetrics: ChatMetrics,
 ) : RedisChatEventPublisher {
 
   override fun publishCreated(chatEventEnvelope: ChatEventEnvelope): Mono<Long> {
@@ -38,6 +39,7 @@ class DefaultRedisChatEventPublisher(
   private fun publish(channel: String, event: ChatEventEnvelope): Mono<Long> {
     return redisTemplate.convertAndSend(channel, event)
       .doOnNext { receivers ->
+        chatMetrics.recordRedisPublished(channel)
         log.info("Redis published event: channel={}, receivers={}", channel, receivers)
       }
       .doOnError { error ->
