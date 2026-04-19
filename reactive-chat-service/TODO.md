@@ -50,6 +50,13 @@
    - [ ] Reconnect с догрузкой истории из Mongo.
 
 [ ] 9. Load tests.
+   - [ ] `ws-smoke`: 5-10 клиентов, базовый handshake, отправка пары сообщений, проверка базовой доставки.
+   - [ ] `ws-burst`: 100-500 виртуальных пользователей, burst отправки сообщений, проверка rate limiter и rejects.
+   - [ ] `ws-pair-delivery`: sender/receiver пары, проверка delivery path и статусов `accepted/delivered/rejected`.
+   - [ ] `ws-slow-consumer`: медленный receiver, заполнение outbound queue, проверка backpressure и drops/rejects.
+   - [ ] `ws-reconnect`: disconnect/reconnect, проверка догрузки history из MongoDB.
+   - [ ] `ws-multi-chat`: много `chatId` и пользователей, проверка распределения нагрузки и изоляции чатов.
+   - [ ] `ws-long-lived`: долгоживущие WebSocket-сессии, проверка памяти, GC и стабильности соединений.
    - [ ] Burst scenario без OOM и с контролируемой деградацией.
    - [ ] Slow consumer scenario для проверки overflow outbound queue.
    - [ ] Проверка SLA по latency (`p95 < 250 ms`) на тестовом стенде.
