@@ -9,11 +9,4 @@ interface Notifier {
   val eventType: ChatEventType
 
   fun notify(event: ChatEventEnvelope): Mono<Long>
-
-  fun extractMessageId(event: ChatEventEnvelope): String? {
-    return event.payload
-      ?.get("messageId")
-      ?.takeIf { !it.isNull }
-      ?.asText()
-  }
 }

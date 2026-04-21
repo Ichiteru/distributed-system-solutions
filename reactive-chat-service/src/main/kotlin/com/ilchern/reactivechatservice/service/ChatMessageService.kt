@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
+import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
@@ -12,7 +12,6 @@ import com.ilchern.reactivechatservice.service.notifier.NotifierRegistry
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -30,6 +29,7 @@ class DefaultChatMessageService(
   private val chatMetrics: ChatMetrics,
   private val objectMapper: ObjectMapper,
   private val notifierRegistry: NotifierRegistry,
+  private val chatEventFactory: ChatEventFactory,
 ) : ChatMessageService {
 
   override fun handleIncoming(chatId: String, senderId: String, envelope: ChatEventEnvelope): Mono<Void> {
@@ -64,7 +64,7 @@ class DefaultChatMessageService(
           )
             .doOnNext { chatMetrics.recordMessageAccepted() }
             .delayUntil { chatMessage ->
-              val createdEnvelope = buildMessageCreatedEnvelope(chatMessage)
+              val createdEnvelope = chatEventFactory.messageCreated(chatMessage)
               notifierRegistry.get(ChatEventType.CHAT_MESSAGE_ACCEPTED).notify(createdEnvelope)
                 .then(redisChatEventPublisher.publishCreated(createdEnvelope))
             }
@@ -91,20 +91,11 @@ class DefaultChatMessageService(
   }
 
   private fun notifyAboutRateLimitRejection(envelope: ChatEventEnvelope): Mono<Int> {
-    val errorEnvelope = ChatEventEnvelope(
-      eventId = UUID.randomUUID().toString(),
-      eventType = ChatEventType.ERROR,
-      correlationId = envelope.correlationId,
-      chatId = envelope.chatId,
-      senderId = envelope.senderId,
-      timestamp = Instant.now(),
-      payload = objectMapper.valueToTree(
-        ChatErrorPayload(
-          code = "TOO_MANY_MESSAGES",
-          httpStatus = 429,
-          message = "Message rejected by backpressure policy",
-        )
-      ),
+    val errorEnvelope = chatEventFactory.error(
+      event = envelope,
+      code = "TOO_MANY_MESSAGES",
+      httpStatus = 429,
+      message = "Message rejected by backpressure policy",
     )
     val payload = objectMapper.writeValueAsString(errorEnvelope)
 
@@ -113,23 +104,5 @@ class DefaultChatMessageService(
       .next()
       .flatMap { session -> sessionEmitService.emit(session, payload).thenReturn(1) }
       .defaultIfEmpty(0)
-  }
-
-  private fun buildMessageCreatedEnvelope(chatMessage: ChatMessage): ChatEventEnvelope {
-    return ChatEventEnvelope(
-      eventId = UUID.randomUUID().toString(),
-      eventType = ChatEventType.CHAT_MESSAGE_CREATED,
-      correlationId = chatMessage.correlationId,
-      chatId = chatMessage.chatId,
-      senderId = chatMessage.senderId,
-      timestamp = chatMessage.payload.createdAt.atZone(java.time.ZoneOffset.UTC).toInstant(),
-      payload = objectMapper.valueToTree(
-        ChatMessagePayload(
-          type = chatMessage.payload.type,
-          value = chatMessage.payload.value,
-          messageId = chatMessage.id,
-        )
-      ),
-    )
   }
 }
