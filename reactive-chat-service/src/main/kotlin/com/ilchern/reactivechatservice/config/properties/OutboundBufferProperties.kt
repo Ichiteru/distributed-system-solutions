@@ -1,4 +1,4 @@
-package com.ilchern.reactivechatservice.config
+package com.ilchern.reactivechatservice.config.properties
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 

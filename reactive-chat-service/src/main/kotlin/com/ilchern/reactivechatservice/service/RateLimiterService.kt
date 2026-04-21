@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.service
 
-import com.ilchern.reactivechatservice.config.RateLimitProperties
+import com.ilchern.reactivechatservice.config.properties.RateLimitProperties
 import io.micrometer.core.instrument.MeterRegistry
 import org.apache.logging.log4j.LogManager
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate

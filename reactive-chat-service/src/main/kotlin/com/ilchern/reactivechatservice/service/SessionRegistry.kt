@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.service
 
-import com.ilchern.reactivechatservice.config.OutboundBufferProperties
+import com.ilchern.reactivechatservice.config.properties.OutboundBufferProperties
 import com.ilchern.reactivechatservice.service.backpressure.BackpressurePolicy
 import com.ilchern.reactivechatservice.service.backpressure.BoundedBackpressureQueue
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage

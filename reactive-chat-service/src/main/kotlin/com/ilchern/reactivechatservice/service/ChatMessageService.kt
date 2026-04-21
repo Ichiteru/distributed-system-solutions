@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.service
 
-import com.ilchern.reactivechatservice.config.HistoryProperties
+import com.ilchern.reactivechatservice.config.properties.HistoryProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
@@ -11,6 +11,7 @@ import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.Payload
 import com.ilchern.reactivechatservice.repository.ChatMessageRepository
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
+import com.ilchern.reactivechatservice.service.notifier.Notifier
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -25,8 +26,7 @@ interface ChatMessageService {
   fun handleIncoming(chatId: String, senderId: String, envelope: ChatEventEnvelope): Mono<Void>
   fun loadRecentHistory(chatId: String): Flux<ChatEventEnvelope>
   fun sendEventToReceivers(event: ChatEventEnvelope): Mono<Long>
-  fun notifyAboutDelivery(event: ChatEventEnvelope): Mono<Int>
-  fun notifyAboutRejection(event: ChatEventEnvelope): Mono<Int>
+   fun notifyAboutRejection(event: ChatEventEnvelope): Mono<Int>
   fun notifyAboutAcceptance(event: ChatEventEnvelope): Mono<Int>
 }
 
@@ -176,33 +176,6 @@ class DefaultChatMessageService(
           }
       }
       .reduce(0L) { acc, next -> acc.plus(next) }
-  }
-
-  override fun notifyAboutDelivery(event: ChatEventEnvelope): Mono<Int> {
-    val deliveryEnvelope = ChatEventEnvelope(
-      eventId = UUID.randomUUID().toString(),
-      eventType = ChatEventType.CHAT_MESSAGE_DELIVERED,
-      correlationId = event.correlationId,
-      chatId = event.chatId,
-      senderId = event.senderId,
-      timestamp = Instant.now(),
-      payload = objectMapper.valueToTree(
-        ChatMessageStatusPayload(
-          messageId = extractMessageId(event),
-          status = ChatEventType.CHAT_MESSAGE_DELIVERED.value,
-        )
-      ),
-    )
-    val payload = objectMapper.writeValueAsString(deliveryEnvelope)
-
-    return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
-      .filter { session -> session.userId == event.senderId }
-      .next()
-      .flatMap { session ->
-        sessionEmitService.emit(session, payload)
-          .thenReturn(1)
-      }
-      .defaultIfEmpty(0)
   }
 
   override fun notifyAboutRejection(event: ChatEventEnvelope): Mono<Int> {
