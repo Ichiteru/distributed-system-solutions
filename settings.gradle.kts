@@ -19,3 +19,4 @@ pluginManagement {
 
 include(":platform-dependencies")
 include(":reactive-chat-service")
+include(":spring-boot-mongo-migration-starter")

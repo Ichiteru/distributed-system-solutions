@@ -9,6 +9,10 @@ spring:
       host: ${SPRING.DATA.REDIS.HOST}
       port: ${SPRING.DATA.REDIS.PORT}
 
+mongo:
+  migration:
+    scan-package: com.ilchern.reactivechatservice.migration
+
 management:
   endpoints:
     web:

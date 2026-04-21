@@ -9,6 +9,7 @@ kotlin {
 }
 
 dependencies {
+  implementation(project(":spring-boot-mongo-migration-starter"))
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
   implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
