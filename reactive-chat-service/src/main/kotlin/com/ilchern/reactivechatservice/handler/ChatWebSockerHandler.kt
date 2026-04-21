@@ -1,11 +1,12 @@
 package com.ilchern.reactivechatservice.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
 import com.ilchern.reactivechatservice.service.ChatHistoryService
 import com.ilchern.reactivechatservice.service.ChatMessageService
 import com.ilchern.reactivechatservice.service.SessionRegistry
+import com.ilchern.reactivechatservice.service.SessionRegistrationRequest
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
 import org.springframework.stereotype.Component
@@ -18,7 +19,7 @@ import java.util.Locale
 
 @Component
 class ChatWebSockerHandler(
-  private val objectMapper: ObjectMapper,
+  private val chatEventCodec: ChatEventCodec,
   private val sessionRegistry: SessionRegistry,
   private val chatMessageService: ChatMessageService,
   private val chatHistoryService: ChatHistoryService,
@@ -28,14 +29,21 @@ class ChatWebSockerHandler(
     val queryParams = UriComponentsBuilder.fromUri(session.handshakeInfo.uri).build().queryParams
     val userId = queryParams.getFirst("userId") ?: error("USER ID NOT FOUND")
     val chatId = queryParams.getFirst("chatId") ?: error("CHAT ID NOT FOUND")
-    queryParams.getFirst("role")
+    val role = queryParams.getFirst("role")
       ?.uppercase(Locale.getDefault())
       ?.let(ChatParticipantRole::valueOf)
       ?: error("ROLE NOT FOUND")
 
-    val sessionSink = sessionRegistry.register(session)
+    val sessionSink = sessionRegistry.register(
+      SessionRegistrationRequest(
+        sessionId = session.id,
+        userId = userId,
+        chatId = chatId,
+        role = role,
+      )
+    )
     val history = chatHistoryService.loadRecentHistory(chatId)
-      .map(objectMapper::writeValueAsString)
+      .map(chatEventCodec::encode)
       .map { payload -> OutboundMessage(payload, OutboundMessagePriority.CRITICAL) }
 
     val outgoing = session.send(
@@ -44,7 +52,7 @@ class ChatWebSockerHandler(
     )
 
     val incoming = session.receive()
-      .map { message -> objectMapper.readValue(message.payloadAsText, ChatEventEnvelope::class.java) }
+      .map { message -> chatEventCodec.decode(message.payloadAsText) }
       .flatMap { envelope -> chatMessageService.handleIncoming(chatId, userId, envelope) }
       .then()
 

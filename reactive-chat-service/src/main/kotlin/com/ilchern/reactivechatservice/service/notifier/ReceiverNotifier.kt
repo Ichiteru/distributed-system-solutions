@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.service.notifier
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.service.ChatMetrics
@@ -16,7 +16,7 @@ import reactor.core.publisher.Sinks
 @Service
 class ReceiverNotifier(
   override val eventType: ChatEventType = ChatEventType.CHAT_MESSAGE_CREATED,
-  private val objectMapper: ObjectMapper,
+  private val chatEventCodec: ChatEventCodec,
   private val registry: SessionRegistry,
   private val sessionEmitService: SessionEmitService,
   private val chatMetrics: ChatMetrics,
@@ -24,7 +24,7 @@ class ReceiverNotifier(
 ) : Notifier {
 
   override fun notify(event: ChatEventEnvelope): Mono<Long> {
-    val payload = objectMapper.writeValueAsString(event)
+    val payload = chatEventCodec.encode(event)
     val priority = priorityOf(event)
 
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))

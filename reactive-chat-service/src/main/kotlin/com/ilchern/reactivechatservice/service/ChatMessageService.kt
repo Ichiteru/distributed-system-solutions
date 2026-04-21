@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
@@ -27,7 +27,7 @@ class DefaultChatMessageService(
   private val sessionEmitService: SessionEmitService,
   private val rateLimiterService: RateLimiterService,
   private val chatMetrics: ChatMetrics,
-  private val objectMapper: ObjectMapper,
+  private val chatEventCodec: ChatEventCodec,
   private val notifierRegistry: NotifierRegistry,
   private val chatEventFactory: ChatEventFactory,
 ) : ChatMessageService {
@@ -45,7 +45,7 @@ class DefaultChatMessageService(
   }
 
   private fun createMessage(envelope: ChatEventEnvelope): Mono<ChatMessage> {
-    val request = objectMapper.treeToValue(envelope.payload, ChatMessagePayload::class.java)
+    val request = chatEventCodec.decodePayload(envelope, ChatMessagePayload::class.java)
 
     return rateLimiterService.tryConsume(envelope.senderId)
       .flatMap { decision ->
@@ -97,7 +97,7 @@ class DefaultChatMessageService(
       httpStatus = 429,
       message = "Message rejected by backpressure policy",
     )
-    val payload = objectMapper.writeValueAsString(errorEnvelope)
+    val payload = chatEventCodec.encode(errorEnvelope)
 
     return Flux.fromIterable(registry.getSessionsByChatId(envelope.chatId))
       .filter { session -> session.userId == envelope.senderId }

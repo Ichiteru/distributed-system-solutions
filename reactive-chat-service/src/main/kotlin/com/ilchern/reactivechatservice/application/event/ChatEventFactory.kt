@@ -1,6 +1,5 @@
 package com.ilchern.reactivechatservice.application.event
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
@@ -14,7 +13,7 @@ import java.util.UUID
 
 @Component
 class ChatEventFactory(
-  private val objectMapper: ObjectMapper,
+  private val chatEventCodec: ChatEventCodec,
 ) {
 
   fun messageCreated(chatMessage: ChatMessage): ChatEventEnvelope {
@@ -25,7 +24,7 @@ class ChatEventFactory(
       chatId = chatMessage.chatId,
       senderId = chatMessage.senderId,
       timestamp = chatMessage.payload.createdAt.atZone(ZoneOffset.UTC).toInstant(),
-      payload = objectMapper.valueToTree(
+      payload = chatEventCodec.encodePayload(
         ChatMessagePayload(
           type = chatMessage.payload.type,
           value = chatMessage.payload.value,
@@ -60,7 +59,7 @@ class ChatEventFactory(
       chatId = event.chatId,
       senderId = event.senderId,
       timestamp = Instant.now(),
-      payload = objectMapper.valueToTree(
+      payload = chatEventCodec.encodePayload(
         ChatErrorPayload(
           code = code,
           httpStatus = httpStatus,
@@ -70,10 +69,12 @@ class ChatEventFactory(
     )
   }
 
-  private fun messageStatus(
+  fun messageStatus(
     event: ChatEventEnvelope,
     eventType: ChatEventType,
   ): ChatEventEnvelope {
+    require(eventType in SENDER_STATUS_EVENT_TYPES) { "Unsupported sender status event type: $eventType" }
+
     return ChatEventEnvelope(
       eventId = UUID.randomUUID().toString(),
       eventType = eventType,
@@ -81,7 +82,7 @@ class ChatEventFactory(
       chatId = event.chatId,
       senderId = event.senderId,
       timestamp = Instant.now(),
-      payload = objectMapper.valueToTree(
+      payload = chatEventCodec.encodePayload(
         ChatMessageStatusPayload(
           messageId = extractMessageId(event),
           status = eventType.value,
@@ -95,5 +96,13 @@ class ChatEventFactory(
       ?.get("messageId")
       ?.takeIf { !it.isNull }
       ?.asText()
+  }
+
+  private companion object {
+    private val SENDER_STATUS_EVENT_TYPES = setOf(
+      ChatEventType.CHAT_MESSAGE_ACCEPTED,
+      ChatEventType.CHAT_MESSAGE_DELIVERED,
+      ChatEventType.CHAT_MESSAGE_REJECTED,
+    )
   }
 }
