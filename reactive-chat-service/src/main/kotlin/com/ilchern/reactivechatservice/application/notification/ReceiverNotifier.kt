@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
 import com.ilchern.reactivechatservice.infrastructure.metrics.DeliveryMetrics
@@ -25,7 +25,7 @@ class ReceiverNotifier(
   private val redisChatEventPublisher: RedisChatEventPublisher,
 ) : Notifier {
 
-  override fun notify(event: ChatEventEnvelope): Mono<Long> {
+  override fun notify(event: ChatEvent): Mono<Long> {
     val payload = chatEventCodec.encode(event)
     val priority = priorityOf(event)
 
@@ -62,7 +62,7 @@ class ReceiverNotifier(
       .reduce(0L) { acc, next -> acc.plus(next) }
   }
 
-  private fun priorityOf(event: ChatEventEnvelope): OutboundMessagePriority {
+  private fun priorityOf(event: ChatEvent): OutboundMessagePriority {
     return when (event.eventType) {
       ChatEventType.CHAT_TYPING_STARTED,
       ChatEventType.CHAT_TYPING_STOPPED -> OutboundMessagePriority.EPHEMERAL

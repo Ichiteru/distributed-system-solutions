@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.application.message
 
 import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.api.IncomingChatSocketMessage
@@ -22,7 +22,7 @@ class DefaultIncomingSocketMessageHandler(
   override fun handle(chatId: String, senderId: String, incoming: IncomingChatSocketMessage): Mono<Void> {
     val normalizedSocketMessage = inboundChatEventNormalizer.normalize(incoming)
 
-    val envelope = ChatEventEnvelope(
+    val envelope = ChatEvent(
       eventId = incoming.eventId,
       eventType = incoming.eventType,
       correlationId = incoming.correlationId,

@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
@@ -17,7 +17,7 @@ class SenderStatusNotifier(
   private val sessionEmitService: SessionEmitService,
 ) : Notifier {
 
-  override fun notify(event: ChatEventEnvelope): Mono<Long> {
+  override fun notify(event: ChatEvent): Mono<Long> {
     val statusEnvelope = chatEventFactory.messageStatus(event, eventType)
     val payload = chatEventCodec.encode(statusEnvelope)
 

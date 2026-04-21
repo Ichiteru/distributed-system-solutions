@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.infrastructure.event
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatEventPayload
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
@@ -15,7 +15,7 @@ class ChatEventCodec(
   private val objectMapper: ObjectMapper,
 ) {
 
-  fun encode(event: ChatEventEnvelope): String {
+  fun encode(event: ChatEvent): String {
     return objectMapper.writeValueAsString(toWire(event))
   }
 
@@ -23,8 +23,8 @@ class ChatEventCodec(
     return objectMapper.readValue(payload, IncomingChatSocketMessage::class.java)
   }
 
-  fun toWire(event: ChatEventEnvelope): WireChatEventEnvelope {
-    return WireChatEventEnvelope(
+  fun toWire(event: ChatEvent): ChannelChatEvent {
+    return ChannelChatEvent(
       eventId = event.eventId,
       eventType = event.eventType.value,
       correlationId = event.correlationId,
@@ -35,8 +35,8 @@ class ChatEventCodec(
     )
   }
 
-  fun fromWire(event: WireChatEventEnvelope): ChatEventEnvelope {
-    return ChatEventEnvelope(
+  fun fromWire(event: ChannelChatEvent): ChatEvent {
+    return ChatEvent(
       eventId = event.eventId,
       eventType = ChatEventType.fromValue(event.eventType),
       correlationId = event.correlationId,
@@ -47,7 +47,7 @@ class ChatEventCodec(
     )
   }
 
-  private fun decodePayload(event: WireChatEventEnvelope): ChatEventPayload? {
+  private fun decodePayload(event: ChannelChatEvent): ChatEventPayload? {
     val payload = event.payload ?: return null
 
     return when (ChatEventType.fromValue(event.eventType)) {

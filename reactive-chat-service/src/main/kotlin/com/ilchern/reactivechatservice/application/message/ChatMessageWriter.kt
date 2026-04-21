@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.application.message
 
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.Payload
@@ -14,7 +14,7 @@ class ChatMessageWriter(
   private val chatMessageRepository: ChatMessageRepository,
 ) {
 
-  fun save(envelope: ChatEventEnvelope): Mono<ChatMessage> {
+  fun save(envelope: ChatEvent): Mono<ChatMessage> {
     val request = requireNotNull(envelope.payload as? ChatMessagePayload) {
       "Expected ${ChatMessagePayload::class.simpleName} for ${envelope.eventType}"
     }

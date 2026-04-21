@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.model.api
 
 import java.time.Instant
 
-data class ChatEventEnvelope(
+data class ChatEvent(
   val eventId: String = "",
   val eventType: ChatEventType,
   val correlationId: String? = null,

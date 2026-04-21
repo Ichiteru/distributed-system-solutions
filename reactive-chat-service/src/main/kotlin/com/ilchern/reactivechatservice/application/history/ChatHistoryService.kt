@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.application.history
 
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.config.properties.HistoryProperties
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.infrastructure.persistence.mongo.ChatMessageRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 
 interface ChatHistoryService {
-  fun loadRecentHistory(chatId: String): Flux<ChatEventEnvelope>
+  fun loadRecentHistory(chatId: String): Flux<ChatEvent>
 }
 
 @Service
@@ -20,7 +20,7 @@ class DefaultChatHistoryService(
   private val chatEventFactory: ChatEventFactory,
 ) : ChatHistoryService {
 
-  override fun loadRecentHistory(chatId: String): Flux<ChatEventEnvelope> {
+  override fun loadRecentHistory(chatId: String): Flux<ChatEvent> {
     val pageRequest = PageRequest.of(
       0,
       historyProperties.reconnectLimit,

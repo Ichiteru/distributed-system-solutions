@@ -5,14 +5,14 @@ import com.ilchern.reactivechatservice.application.notification.NotifierRegistry
 import com.ilchern.reactivechatservice.application.ratelimit.RateLimiterService
 import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
 import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 interface ChatMessageCreatedHandler{
-  fun createMessage(envelope: ChatEventEnvelope): Mono<ChatMessage>
+  fun createMessage(envelope: ChatEvent): Mono<ChatMessage>
 }
 
 @Service
@@ -24,7 +24,7 @@ class DefaultChatMessageCreatedHandler (
   private val chatEventFactory: ChatEventFactory,
 ) : ChatMessageCreatedHandler{
 
-  override fun createMessage(envelope: ChatEventEnvelope): Mono<ChatMessage> {
+  override fun createMessage(envelope: ChatEvent): Mono<ChatMessage> {
     return chatMessageWriter.save(envelope)
       .doOnNext { chatMessageMetrics.recordAccepted() }
       .delayUntil { chatMessage ->
@@ -43,7 +43,7 @@ class RateLimitedChatMessageCreatedHandler(
   private val chatMessageMetrics: ChatMessageMetrics,
 ) : ChatMessageCreatedHandler {
 
-  override fun createMessage(envelope: ChatEventEnvelope): Mono<ChatMessage> {
+  override fun createMessage(envelope: ChatEvent): Mono<ChatMessage> {
     return rateLimiterService.tryConsume(envelope.senderId)
       .flatMap { decision ->
         if (decision.allowed) {

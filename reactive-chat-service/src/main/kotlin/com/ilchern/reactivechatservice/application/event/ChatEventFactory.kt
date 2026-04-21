@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.application.event
 
 import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.model.api.ChatEvent
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.api.ChatMessageStatusPayload
@@ -14,8 +14,8 @@ import java.util.UUID
 @Component
 class ChatEventFactory {
 
-  fun messageCreated(chatMessage: ChatMessage): ChatEventEnvelope {
-    return ChatEventEnvelope(
+  fun messageCreated(chatMessage: ChatMessage): ChatEvent {
+    return ChatEvent(
       eventId = UUID.randomUUID().toString(),
       eventType = ChatEventType.CHAT_MESSAGE_CREATED,
       correlationId = chatMessage.correlationId,
@@ -31,12 +31,12 @@ class ChatEventFactory {
   }
 
   fun error(
-    event: ChatEventEnvelope,
+    event: ChatEvent,
     code: String,
     httpStatus: Int,
     message: String,
-  ): ChatEventEnvelope {
-    return ChatEventEnvelope(
+  ): ChatEvent {
+    return ChatEvent(
       eventId = UUID.randomUUID().toString(),
       eventType = ChatEventType.ERROR,
       correlationId = event.correlationId,
@@ -52,12 +52,12 @@ class ChatEventFactory {
   }
 
   fun messageStatus(
-    event: ChatEventEnvelope,
+    event: ChatEvent,
     eventType: ChatEventType,
-  ): ChatEventEnvelope {
+  ): ChatEvent {
     require(eventType in SENDER_STATUS_EVENT_TYPES) { "Unsupported sender status event type: $eventType" }
 
-    return ChatEventEnvelope(
+    return ChatEvent(
       eventId = UUID.randomUUID().toString(),
       eventType = eventType,
       correlationId = event.correlationId,
@@ -71,7 +71,7 @@ class ChatEventFactory {
     )
   }
 
-  private fun extractMessageId(event: ChatEventEnvelope): String? {
+  private fun extractMessageId(event: ChatEvent): String? {
     return (event.payload as? ChatMessagePayload)?.messageId
   }
 
