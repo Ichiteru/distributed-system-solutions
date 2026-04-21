@@ -3,7 +3,7 @@ package com.ilchern.reactivechatservice.infrastructure.event
 import com.fasterxml.jackson.databind.JsonNode
 import java.time.Instant
 
-data class WireChatEventEnvelope(
+data class WireChatEvent(
   val eventId: String = "",
   val eventType: String,
   val correlationId: String? = null,

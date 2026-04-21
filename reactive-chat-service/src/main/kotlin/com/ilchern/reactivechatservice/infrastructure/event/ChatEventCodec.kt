@@ -23,8 +23,8 @@ class ChatEventCodec(
     return objectMapper.readValue(payload, IncomingChatSocketMessage::class.java)
   }
 
-  fun toWire(event: ChatEvent): ChannelChatEvent {
-    return ChannelChatEvent(
+  fun toWire(event: ChatEvent): WireChatEvent {
+    return WireChatEvent(
       eventId = event.eventId,
       eventType = event.eventType.value,
       correlationId = event.correlationId,
@@ -35,7 +35,7 @@ class ChatEventCodec(
     )
   }
 
-  fun fromWire(event: ChannelChatEvent): ChatEvent {
+  fun fromWire(event: WireChatEvent): ChatEvent {
     return ChatEvent(
       eventId = event.eventId,
       eventType = ChatEventType.fromValue(event.eventType),
@@ -47,7 +47,7 @@ class ChatEventCodec(
     )
   }
 
-  private fun decodePayload(event: ChannelChatEvent): ChatEventPayload? {
+  private fun decodePayload(event: WireChatEvent): ChatEventPayload? {
     val payload = event.payload ?: return null
 
     return when (ChatEventType.fromValue(event.eventType)) {

@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.infrastructure.redis
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.infrastructure.event.ChannelChatEvent
+import com.ilchern.reactivechatservice.infrastructure.event.WireChatEvent
 import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
 import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.api.ChatEventType
@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono
 
 @Service
 class RedisChatEventSubscriber(
-  private val redisTemplate: ReactiveRedisTemplate<String, ChannelChatEvent>,
+  private val redisTemplate: ReactiveRedisTemplate<String, WireChatEvent>,
   private val chatEventCodec: ChatEventCodec,
   private val redisPubSubMetrics: RedisPubSubMetrics,
   private val notifierRegistry: NotifierRegistry,
