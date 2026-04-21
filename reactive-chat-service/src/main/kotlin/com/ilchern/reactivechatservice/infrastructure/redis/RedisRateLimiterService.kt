@@ -1,7 +1,9 @@
-package com.ilchern.reactivechatservice.service
+package com.ilchern.reactivechatservice.infrastructure.redis
 
+import com.ilchern.reactivechatservice.application.ratelimit.RateLimitDecision
+import com.ilchern.reactivechatservice.application.ratelimit.RateLimiterService
 import com.ilchern.reactivechatservice.config.properties.RateLimitProperties
-import io.micrometer.core.instrument.MeterRegistry
+import com.ilchern.reactivechatservice.infrastructure.metrics.RateLimitMetrics
 import org.apache.logging.log4j.LogManager
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.data.redis.core.script.RedisScript
@@ -9,57 +11,14 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Clock
 
-interface RateLimiterService {
-  fun tryConsume(userId: String): Mono<RateLimitDecision>
-}
-
-data class RateLimitDecision(
-  val allowed: Boolean,
-  val remainingTokens: Long,
-  val retryAfterMillis: Long,
-) {
-  companion object {
-    fun allowed(remainingTokens: Long): RateLimitDecision {
-      return RateLimitDecision(
-        allowed = true,
-        remainingTokens = remainingTokens,
-        retryAfterMillis = 0,
-      )
-    }
-
-    fun rejected(retryAfterMillis: Long): RateLimitDecision {
-      return RateLimitDecision(
-        allowed = false,
-        remainingTokens = 0,
-        retryAfterMillis = retryAfterMillis,
-      )
-    }
-  }
-}
-
 @Service
 class RedisRateLimiterService(
   private val redisTemplate: ReactiveStringRedisTemplate,
   private val tokenBucketRedisScript: RedisScript<String>,
   private val rateLimitProperties: RateLimitProperties,
-  meterRegistry: MeterRegistry,
+  private val rateLimitMetrics: RateLimitMetrics,
 ) : RateLimiterService {
 
-  private val requestCounter = meterRegistry.counter(
-    "chat_rate_limit_requests_total",
-    "outcome",
-    "allowed",
-  )
-  private val rejectedCounter = meterRegistry.counter(
-    "chat_rate_limit_requests_total",
-    "outcome",
-    "rejected",
-  )
-  private val backendErrorCounter = meterRegistry.counter(
-    "chat_rate_limit_requests_total",
-    "outcome",
-    "backend_error",
-  )
   private val clock = Clock.systemUTC()
 
   override fun tryConsume(userId: String): Mono<RateLimitDecision> {
@@ -87,7 +46,7 @@ class RedisRateLimiterService(
       .map(::parseDecision)
       .doOnNext { decision ->
         if (decision.allowed) {
-          requestCounter.increment()
+          rateLimitMetrics.recordAllowed()
           log.info(
             "Rate limit allowed: userId={}, remainingTokens={}, retryAfterMillis={}",
             userId,
@@ -95,7 +54,7 @@ class RedisRateLimiterService(
             decision.retryAfterMillis,
           )
         } else {
-          rejectedCounter.increment()
+          rateLimitMetrics.recordRejected()
           log.warn(
             "Rate limit rejected: userId={}, remainingTokens={}, retryAfterMillis={}",
             userId,
@@ -105,7 +64,7 @@ class RedisRateLimiterService(
         }
       }
       .onErrorResume { error ->
-        backendErrorCounter.increment()
+        rateLimitMetrics.recordBackendError()
         log.error(
           "Rate limiter backend failed, rejecting request in fail-closed mode: userId={}, fallbackRetryAfterMillis={}",
           userId,

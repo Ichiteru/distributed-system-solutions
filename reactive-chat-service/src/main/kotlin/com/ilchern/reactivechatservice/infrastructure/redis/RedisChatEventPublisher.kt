@@ -1,5 +1,6 @@
-package com.ilchern.reactivechatservice.service
+package com.ilchern.reactivechatservice.infrastructure.redis
 
+import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
 import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import org.apache.logging.log4j.LogManager
@@ -17,7 +18,7 @@ interface RedisChatEventPublisher {
 @Service
 class DefaultRedisChatEventPublisher(
   private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
-  private val chatMetrics: ChatMetrics,
+  private val redisPubSubMetrics: RedisPubSubMetrics,
 ) : RedisChatEventPublisher {
 
   override fun publishCreated(chatEventEnvelope: ChatEventEnvelope): Mono<Long> {
@@ -39,7 +40,7 @@ class DefaultRedisChatEventPublisher(
   private fun publish(channel: String, event: ChatEventEnvelope): Mono<Long> {
     return redisTemplate.convertAndSend(channel, event)
       .doOnNext { receivers ->
-        chatMetrics.recordRedisPublished(channel)
+        redisPubSubMetrics.recordPublished(channel)
         log.info("Redis published event: channel={}, receivers={}", channel, receivers)
       }
       .doOnError { error ->

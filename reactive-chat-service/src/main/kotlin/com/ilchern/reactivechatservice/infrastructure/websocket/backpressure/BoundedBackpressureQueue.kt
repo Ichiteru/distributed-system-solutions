@@ -1,13 +1,13 @@
-package com.ilchern.reactivechatservice.service.backpressure
+package com.ilchern.reactivechatservice.infrastructure.websocket.backpressure
 
-import com.ilchern.reactivechatservice.service.ChatMetrics
+import com.ilchern.reactivechatservice.infrastructure.metrics.OutboundBufferMetrics
 import java.util.AbstractQueue
 import java.util.ArrayDeque
 
 class BoundedBackpressureQueue(
   private val capacity: Int,
   private val backpressurePolicy: BackpressurePolicy,
-  private val chatMetrics: ChatMetrics,
+  private val outboundBufferMetrics: OutboundBufferMetrics,
 ) : AbstractQueue<OutboundMessage>() {
 
   private val queue = ArrayDeque<OutboundMessage>(capacity)
@@ -15,14 +15,14 @@ class BoundedBackpressureQueue(
   override fun offer(element: OutboundMessage): Boolean = synchronized(queue) {
     if (queue.size < capacity) {
       queue.addLast(element)
-      chatMetrics.incrementOutboundBufferSize()
+      outboundBufferMetrics.incrementBufferSize()
       return true
     }
 
     return when (backpressurePolicy.onOverflow(element, queue)) {
       BackpressureDecision.ACCEPT -> {
         queue.addLast(element)
-        chatMetrics.incrementOutboundBufferSize()
+        outboundBufferMetrics.incrementBufferSize()
         true
       }
 
@@ -34,7 +34,7 @@ class BoundedBackpressureQueue(
   override fun poll(): OutboundMessage? = synchronized(queue) {
     val polled = queue.pollFirst()
     if (polled != null) {
-      chatMetrics.decrementOutboundBufferSize()
+      outboundBufferMetrics.decrementBufferSize()
     }
     polled
   }
@@ -53,12 +53,12 @@ class BoundedBackpressureQueue(
   fun clearAndRecordDroppedItems() = synchronized(queue) {
     val clearedItems = queue.size
     queue.clear()
-    chatMetrics.decrementOutboundBufferSize(clearedItems)
+    outboundBufferMetrics.decrementBufferSize(clearedItems)
   }
 
   private fun dropEphemeralAndContinue(incoming: OutboundMessage): Boolean {
     if (incoming.priority == OutboundMessagePriority.EPHEMERAL) {
-      chatMetrics.recordOutboundEventDropped(incoming.priority)
+      outboundBufferMetrics.recordEventDropped(incoming.priority)
       return true
     }
 
@@ -66,7 +66,7 @@ class BoundedBackpressureQueue(
     while (iterator.hasNext()) {
       if (iterator.next().priority == OutboundMessagePriority.EPHEMERAL) {
         iterator.remove()
-        chatMetrics.recordOutboundEventDropped(OutboundMessagePriority.EPHEMERAL)
+        outboundBufferMetrics.recordEventDropped(OutboundMessagePriority.EPHEMERAL)
         queue.addLast(incoming)
         return true
       }

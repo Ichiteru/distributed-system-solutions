@@ -1,4 +1,4 @@
-package com.ilchern.reactivechatservice.service.notifier
+package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType

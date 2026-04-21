@@ -1,10 +1,12 @@
-package com.ilchern.reactivechatservice.service
+package com.ilchern.reactivechatservice.infrastructure.websocket.session
 
 import com.ilchern.reactivechatservice.config.properties.OutboundBufferProperties
+import com.ilchern.reactivechatservice.infrastructure.metrics.OutboundBufferMetrics
+import com.ilchern.reactivechatservice.infrastructure.metrics.WebSocketSessionMetrics
 import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
-import com.ilchern.reactivechatservice.service.backpressure.BackpressurePolicy
-import com.ilchern.reactivechatservice.service.backpressure.BoundedBackpressureQueue
-import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.BackpressurePolicy
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.BoundedBackpressureQueue
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessage
 import org.apache.logging.log4j.LogManager
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Sinks
@@ -21,7 +23,8 @@ class InMemorySessionRegistry(
   private val sessionEmitService: SessionEmitService,
   private val backpressurePolicy: BackpressurePolicy,
   private val outboundBufferProperties: OutboundBufferProperties,
-  private val chatMetrics: ChatMetrics,
+  private val outboundBufferMetrics: OutboundBufferMetrics,
+  private val webSocketSessionMetrics: WebSocketSessionMetrics,
 ) : SessionRegistry {
 
   private val sessionsById = ConcurrentHashMap<String, RegisteredWebSocketSession>()
@@ -32,7 +35,7 @@ class InMemorySessionRegistry(
     val outboundQueue = BoundedBackpressureQueue(
       capacity = outboundBufferProperties.bufferSize,
       backpressurePolicy = backpressurePolicy,
-      chatMetrics = chatMetrics,
+      outboundBufferMetrics = outboundBufferMetrics,
     )
 
     val registeredSession = RegisteredWebSocketSession(
@@ -47,7 +50,7 @@ class InMemorySessionRegistry(
 
     sessionsById[registeredSession.sessionId] = registeredSession
     sessionIdsByChatId.computeIfAbsent(request.chatId) { ConcurrentHashMap.newKeySet() }.add(registeredSession.sessionId)
-    chatMetrics.recordSessionRegistered()
+    webSocketSessionMetrics.recordRegistered()
     log.info(
       "[{}:{}] register sessionId={}, role={}, workerIndex={}",
       request.userId,
@@ -69,7 +72,7 @@ class InMemorySessionRegistry(
       }
     }
     removed.outboundQueue.clearAndRecordDroppedItems()
-    chatMetrics.recordSessionRemoved()
+    webSocketSessionMetrics.recordRemoved()
     sessionEmitService.complete(removed)
     log.info("[{}:{}] remove sessionId={}", removed.userId, removed.chatId, sessionId)
     return removed

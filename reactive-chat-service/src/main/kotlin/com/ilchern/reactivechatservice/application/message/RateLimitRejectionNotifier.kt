@@ -3,8 +3,8 @@ package com.ilchern.reactivechatservice.application.message
 import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
-import com.ilchern.reactivechatservice.service.SessionEmitService
-import com.ilchern.reactivechatservice.service.SessionRegistry
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono

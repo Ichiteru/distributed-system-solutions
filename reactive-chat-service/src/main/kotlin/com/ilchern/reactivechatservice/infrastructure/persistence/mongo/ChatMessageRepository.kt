@@ -1,4 +1,4 @@
-package com.ilchern.reactivechatservice.repository
+package com.ilchern.reactivechatservice.infrastructure.persistence.mongo
 
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import org.springframework.data.domain.Pageable

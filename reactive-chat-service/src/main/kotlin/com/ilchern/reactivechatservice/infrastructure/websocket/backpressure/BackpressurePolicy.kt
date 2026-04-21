@@ -1,4 +1,4 @@
-package com.ilchern.reactivechatservice.service.backpressure
+package com.ilchern.reactivechatservice.infrastructure.websocket.backpressure
 
 import org.springframework.stereotype.Service
 

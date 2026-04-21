@@ -1,13 +1,13 @@
-package com.ilchern.reactivechatservice.service
+package com.ilchern.reactivechatservice.application.message
 
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
-import com.ilchern.reactivechatservice.application.message.ChatMessageWriter
-import com.ilchern.reactivechatservice.application.message.InboundChatEventNormalizer
-import com.ilchern.reactivechatservice.application.message.RateLimitRejectionNotifier
+import com.ilchern.reactivechatservice.application.notification.NotifierRegistry
+import com.ilchern.reactivechatservice.application.ratelimit.RateLimiterService
+import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
+import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
-import com.ilchern.reactivechatservice.service.notifier.NotifierRegistry
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -22,7 +22,7 @@ class DefaultChatMessageService(
   private val rateLimitRejectionNotifier: RateLimitRejectionNotifier,
   private val redisChatEventPublisher: RedisChatEventPublisher,
   private val rateLimiterService: RateLimiterService,
-  private val chatMetrics: ChatMetrics,
+  private val chatMessageMetrics: ChatMessageMetrics,
   private val notifierRegistry: NotifierRegistry,
   private val chatEventFactory: ChatEventFactory,
 ) : ChatMessageService {
@@ -44,14 +44,14 @@ class DefaultChatMessageService(
       .flatMap { decision ->
         if (decision.allowed) {
           chatMessageWriter.save(envelope)
-            .doOnNext { chatMetrics.recordMessageAccepted() }
+            .doOnNext { chatMessageMetrics.recordAccepted() }
             .delayUntil { chatMessage ->
               val createdEnvelope = chatEventFactory.messageCreated(chatMessage)
               notifierRegistry.get(ChatEventType.CHAT_MESSAGE_ACCEPTED).notify(createdEnvelope)
                 .then(redisChatEventPublisher.publishCreated(createdEnvelope))
             }
         } else {
-          chatMetrics.recordMessageRejected()
+          chatMessageMetrics.recordRejected()
           rateLimitRejectionNotifier.notifySender(envelope)
             .then(Mono.empty())
         }

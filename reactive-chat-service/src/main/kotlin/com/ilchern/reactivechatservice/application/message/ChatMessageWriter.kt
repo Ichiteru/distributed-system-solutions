@@ -5,7 +5,7 @@ import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.Payload
-import com.ilchern.reactivechatservice.repository.ChatMessageRepository
+import com.ilchern.reactivechatservice.infrastructure.persistence.mongo.ChatMessageRepository
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime

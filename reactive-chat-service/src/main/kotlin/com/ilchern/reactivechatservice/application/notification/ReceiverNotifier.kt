@@ -1,13 +1,14 @@
-package com.ilchern.reactivechatservice.service.notifier
+package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
-import com.ilchern.reactivechatservice.service.ChatMetrics
-import com.ilchern.reactivechatservice.service.RedisChatEventPublisher
-import com.ilchern.reactivechatservice.service.SessionEmitService
-import com.ilchern.reactivechatservice.service.SessionRegistry
-import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
+import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
+import com.ilchern.reactivechatservice.infrastructure.metrics.DeliveryMetrics
+import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessagePriority
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -19,7 +20,8 @@ class ReceiverNotifier(
   private val chatEventCodec: ChatEventCodec,
   private val registry: SessionRegistry,
   private val sessionEmitService: SessionEmitService,
-  private val chatMetrics: ChatMetrics,
+  private val chatMessageMetrics: ChatMessageMetrics,
+  private val deliveryMetrics: DeliveryMetrics,
   private val redisChatEventPublisher: RedisChatEventPublisher,
 ) : Notifier {
 
@@ -35,7 +37,7 @@ class ReceiverNotifier(
             when (emitResult) {
               Sinks.EmitResult.OK -> {
                 if (priority == OutboundMessagePriority.CRITICAL) {
-                  chatMetrics.recordDeliveryLatency(event.timestamp)
+                  deliveryMetrics.recordDeliveryLatency(event.timestamp)
                   redisChatEventPublisher.publishDelivered(event)
                 } else {
                   Mono.just(0L)
@@ -48,7 +50,7 @@ class ReceiverNotifier(
 
               else -> {
                 if (priority == OutboundMessagePriority.CRITICAL) {
-                  chatMetrics.recordMessageRejected()
+                  chatMessageMetrics.recordRejected()
                   redisChatEventPublisher.publishRejected(event)
                 } else {
                   Mono.just(0L)

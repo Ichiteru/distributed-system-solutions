@@ -1,14 +1,13 @@
 package com.ilchern.reactivechatservice.handler
 
 import com.ilchern.reactivechatservice.application.event.ChatEventCodec
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
-import com.ilchern.reactivechatservice.service.ChatHistoryService
-import com.ilchern.reactivechatservice.service.ChatMessageService
-import com.ilchern.reactivechatservice.service.SessionRegistry
-import com.ilchern.reactivechatservice.service.SessionRegistrationRequest
-import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
-import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
+import com.ilchern.reactivechatservice.application.history.ChatHistoryService
+import com.ilchern.reactivechatservice.application.message.ChatMessageService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistrationRequest
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessage
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessagePriority
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
@@ -18,7 +17,7 @@ import reactor.core.publisher.Mono
 import java.util.Locale
 
 @Component
-class ChatWebSockerHandler(
+class ChatWebSocketHandler(
   private val chatEventCodec: ChatEventCodec,
   private val sessionRegistry: SessionRegistry,
   private val chatMessageService: ChatMessageService,

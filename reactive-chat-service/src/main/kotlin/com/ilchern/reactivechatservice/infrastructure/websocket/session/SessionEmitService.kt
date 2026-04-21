@@ -1,7 +1,7 @@
-package com.ilchern.reactivechatservice.service
+package com.ilchern.reactivechatservice.infrastructure.websocket.session
 
-import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
-import com.ilchern.reactivechatservice.service.backpressure.OutboundMessagePriority
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessage
+import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessagePriority
 import jakarta.annotation.PreDestroy
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service

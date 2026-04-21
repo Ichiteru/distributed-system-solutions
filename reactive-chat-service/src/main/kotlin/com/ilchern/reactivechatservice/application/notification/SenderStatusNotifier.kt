@@ -1,11 +1,11 @@
-package com.ilchern.reactivechatservice.service.notifier
+package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
-import com.ilchern.reactivechatservice.service.SessionEmitService
-import com.ilchern.reactivechatservice.service.SessionRegistry
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 

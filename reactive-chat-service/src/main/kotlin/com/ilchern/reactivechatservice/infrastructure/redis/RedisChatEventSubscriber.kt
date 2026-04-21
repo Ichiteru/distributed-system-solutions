@@ -1,9 +1,10 @@
-package com.ilchern.reactivechatservice.service
+package com.ilchern.reactivechatservice.infrastructure.redis
 
+import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
 import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
-import com.ilchern.reactivechatservice.service.notifier.NotifierRegistry
+import com.ilchern.reactivechatservice.application.notification.NotifierRegistry
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.apache.logging.log4j.LogManager
@@ -15,7 +16,7 @@ import reactor.core.publisher.Mono
 @Service
 class RedisChatEventSubscriber(
   private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
-  private val chatMetrics: ChatMetrics,
+  private val redisPubSubMetrics: RedisPubSubMetrics,
   private val notifierRegistry: NotifierRegistry,
 ) {
   private var subscription: Disposable? = null
@@ -26,9 +27,9 @@ class RedisChatEventSubscriber(
       Channels.CHAT_MESSAGE_CREATED,
       Channels.CHAT_MESSAGE_DELIVERED,
       Channels.CHAT_MESSAGE_REJECTED,
-    )
+      )
       .flatMap { message ->
-        chatMetrics.recordRedisConsumed(message.channel)
+        redisPubSubMetrics.recordConsumed(message.channel)
         when (message.channel) {
           Channels.CHAT_MESSAGE_CREATED ->
             notifierRegistry.get(ChatEventType.CHAT_MESSAGE_CREATED).notify(message.message)
