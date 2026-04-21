@@ -1,5 +1,7 @@
 package com.ilchern.reactivechatservice.infrastructure.redis
 
+import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
+import com.ilchern.reactivechatservice.infrastructure.event.WireChatEventEnvelope
 import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
 import com.ilchern.reactivechatservice.model.domain.Channels
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
@@ -17,7 +19,8 @@ interface RedisChatEventPublisher {
 
 @Service
 class DefaultRedisChatEventPublisher(
-  private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
+  private val redisTemplate: ReactiveRedisTemplate<String, WireChatEventEnvelope>,
+  private val chatEventCodec: ChatEventCodec,
   private val redisPubSubMetrics: RedisPubSubMetrics,
 ) : RedisChatEventPublisher {
 
@@ -38,7 +41,7 @@ class DefaultRedisChatEventPublisher(
   }
 
   private fun publish(channel: String, event: ChatEventEnvelope): Mono<Long> {
-    return redisTemplate.convertAndSend(channel, event)
+    return redisTemplate.convertAndSend(channel, chatEventCodec.toWire(event))
       .doOnNext { receivers ->
         redisPubSubMetrics.recordPublished(channel)
         log.info("Redis published event: channel={}, receivers={}", channel, receivers)

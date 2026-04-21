@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.application.message
 
-import com.ilchern.reactivechatservice.application.event.ChatEventCodec
+import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService

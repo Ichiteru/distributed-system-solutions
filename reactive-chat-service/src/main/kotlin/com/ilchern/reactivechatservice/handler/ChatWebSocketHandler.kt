@@ -1,9 +1,9 @@
 package com.ilchern.reactivechatservice.handler
 
-import com.ilchern.reactivechatservice.application.event.ChatEventCodec
+import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
 import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
 import com.ilchern.reactivechatservice.application.history.ChatHistoryService
-import com.ilchern.reactivechatservice.application.message.ChatMessageService
+import com.ilchern.reactivechatservice.application.message.IncomingSocketMessageHandler
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistrationRequest
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessage
@@ -20,7 +20,7 @@ import java.util.Locale
 class ChatWebSocketHandler(
   private val chatEventCodec: ChatEventCodec,
   private val sessionRegistry: SessionRegistry,
-  private val chatMessageService: ChatMessageService,
+  private val incomingSocketMessageHandler: IncomingSocketMessageHandler,
   private val chatHistoryService: ChatHistoryService,
 ) : WebSocketHandler {
 
@@ -52,7 +52,7 @@ class ChatWebSocketHandler(
 
     val incoming = session.receive()
       .map { message -> chatEventCodec.decode(message.payloadAsText) }
-      .flatMap { envelope -> chatMessageService.handleIncoming(chatId, userId, envelope) }
+      .flatMap { envelope -> incomingSocketMessageHandler.handle(chatId, userId, envelope) }
       .then()
 
     return outgoing

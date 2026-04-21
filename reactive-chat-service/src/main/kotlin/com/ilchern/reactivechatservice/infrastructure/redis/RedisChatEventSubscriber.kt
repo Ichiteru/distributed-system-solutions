@@ -1,8 +1,9 @@
 package com.ilchern.reactivechatservice.infrastructure.redis
 
+import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
+import com.ilchern.reactivechatservice.infrastructure.event.WireChatEventEnvelope
 import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
 import com.ilchern.reactivechatservice.model.domain.Channels
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatEventType
 import com.ilchern.reactivechatservice.application.notification.NotifierRegistry
 import jakarta.annotation.PostConstruct
@@ -15,7 +16,8 @@ import reactor.core.publisher.Mono
 
 @Service
 class RedisChatEventSubscriber(
-  private val redisTemplate: ReactiveRedisTemplate<String, ChatEventEnvelope>,
+  private val redisTemplate: ReactiveRedisTemplate<String, WireChatEventEnvelope>,
+  private val chatEventCodec: ChatEventCodec,
   private val redisPubSubMetrics: RedisPubSubMetrics,
   private val notifierRegistry: NotifierRegistry,
 ) {
@@ -27,18 +29,19 @@ class RedisChatEventSubscriber(
       Channels.CHAT_MESSAGE_CREATED,
       Channels.CHAT_MESSAGE_DELIVERED,
       Channels.CHAT_MESSAGE_REJECTED,
-      )
+    )
       .flatMap { message ->
         redisPubSubMetrics.recordConsumed(message.channel)
+        val event = chatEventCodec.fromWire(message.message)
         when (message.channel) {
           Channels.CHAT_MESSAGE_CREATED ->
-            notifierRegistry.get(ChatEventType.CHAT_MESSAGE_CREATED).notify(message.message)
+            notifierRegistry.get(ChatEventType.CHAT_MESSAGE_CREATED).notify(event)
 
           Channels.CHAT_MESSAGE_DELIVERED ->
-            notifierRegistry.get(ChatEventType.CHAT_MESSAGE_DELIVERED).notify(message.message)
+            notifierRegistry.get(ChatEventType.CHAT_MESSAGE_DELIVERED).notify(event)
 
           Channels.CHAT_MESSAGE_REJECTED ->
-            notifierRegistry.get(ChatEventType.CHAT_MESSAGE_REJECTED).notify(message.message)
+            notifierRegistry.get(ChatEventType.CHAT_MESSAGE_REJECTED).notify(event)
 
           else -> Mono.just(1L)
         }

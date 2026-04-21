@@ -12,9 +12,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 @Component
-class ChatEventFactory(
-  private val chatEventCodec: ChatEventCodec,
-) {
+class ChatEventFactory {
 
   fun messageCreated(chatMessage: ChatMessage): ChatEventEnvelope {
     return ChatEventEnvelope(
@@ -24,26 +22,12 @@ class ChatEventFactory(
       chatId = chatMessage.chatId,
       senderId = chatMessage.senderId,
       timestamp = chatMessage.payload.createdAt.atZone(ZoneOffset.UTC).toInstant(),
-      payload = chatEventCodec.encodePayload(
-        ChatMessagePayload(
-          type = chatMessage.payload.type,
-          value = chatMessage.payload.value,
-          messageId = chatMessage.id,
-        )
+      payload = ChatMessagePayload(
+        type = chatMessage.payload.type,
+        value = chatMessage.payload.value,
+        messageId = chatMessage.id,
       ),
     )
-  }
-
-  fun accepted(event: ChatEventEnvelope): ChatEventEnvelope {
-    return messageStatus(event, ChatEventType.CHAT_MESSAGE_ACCEPTED)
-  }
-
-  fun delivered(event: ChatEventEnvelope): ChatEventEnvelope {
-    return messageStatus(event, ChatEventType.CHAT_MESSAGE_DELIVERED)
-  }
-
-  fun rejected(event: ChatEventEnvelope): ChatEventEnvelope {
-    return messageStatus(event, ChatEventType.CHAT_MESSAGE_REJECTED)
   }
 
   fun error(
@@ -59,12 +43,10 @@ class ChatEventFactory(
       chatId = event.chatId,
       senderId = event.senderId,
       timestamp = Instant.now(),
-      payload = chatEventCodec.encodePayload(
-        ChatErrorPayload(
-          code = code,
-          httpStatus = httpStatus,
-          message = message,
-        )
+      payload = ChatErrorPayload(
+        code = code,
+        httpStatus = httpStatus,
+        message = message,
       ),
     )
   }
@@ -82,20 +64,15 @@ class ChatEventFactory(
       chatId = event.chatId,
       senderId = event.senderId,
       timestamp = Instant.now(),
-      payload = chatEventCodec.encodePayload(
-        ChatMessageStatusPayload(
-          messageId = extractMessageId(event),
-          status = eventType.value,
-        )
+      payload = ChatMessageStatusPayload(
+        messageId = extractMessageId(event),
+        status = eventType.value,
       ),
     )
   }
 
   private fun extractMessageId(event: ChatEventEnvelope): String? {
-    return event.payload
-      ?.get("messageId")
-      ?.takeIf { !it.isNull }
-      ?.asText()
+    return (event.payload as? ChatMessagePayload)?.messageId
   }
 
   private companion object {

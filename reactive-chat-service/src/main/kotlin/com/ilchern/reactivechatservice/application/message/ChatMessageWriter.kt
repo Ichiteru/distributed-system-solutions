@@ -1,6 +1,5 @@
 package com.ilchern.reactivechatservice.application.message
 
-import com.ilchern.reactivechatservice.application.event.ChatEventCodec
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
@@ -13,11 +12,12 @@ import java.time.LocalDateTime
 @Component
 class ChatMessageWriter(
   private val chatMessageRepository: ChatMessageRepository,
-  private val chatEventCodec: ChatEventCodec,
 ) {
 
   fun save(envelope: ChatEventEnvelope): Mono<ChatMessage> {
-    val request = chatEventCodec.decodePayload(envelope, ChatMessagePayload::class.java)
+    val request = requireNotNull(envelope.payload as? ChatMessagePayload) {
+      "Expected ${ChatMessagePayload::class.simpleName} for ${envelope.eventType}"
+    }
 
     return chatMessageRepository.save(
       ChatMessage(

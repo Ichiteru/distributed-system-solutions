@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
+import com.ilchern.reactivechatservice.infrastructure.event.WireChatEventEnvelope
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
@@ -23,14 +23,14 @@ class RedisPubSubConfig {
   fun chatMessageEventRedisTemplate(
     factory: ReactiveRedisConnectionFactory,
     objectMapper: ObjectMapper,
-  ) : ReactiveRedisTemplate<String, ChatEventEnvelope> {
+  ) : ReactiveRedisTemplate<String, WireChatEventEnvelope> {
     val keySerializer = StringRedisSerializer()
-    val valueSerializer = Jackson2JsonRedisSerializer(objectMapper, ChatEventEnvelope::class.java)
+    val valueSerializer = Jackson2JsonRedisSerializer(objectMapper, WireChatEventEnvelope::class.java)
 
     return ReactiveRedisTemplate(
       factory,
       RedisSerializationContext
-        .newSerializationContext<String, ChatEventEnvelope>(keySerializer)
+        .newSerializationContext<String, WireChatEventEnvelope>(keySerializer)
         .value(valueSerializer)
         .build()
     )
