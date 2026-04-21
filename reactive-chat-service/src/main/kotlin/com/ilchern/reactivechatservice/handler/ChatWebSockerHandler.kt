@@ -3,6 +3,7 @@ package com.ilchern.reactivechatservice.handler
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.reactivechatservice.model.api.ChatEventEnvelope
 import com.ilchern.reactivechatservice.model.api.ChatParticipantRole
+import com.ilchern.reactivechatservice.service.ChatHistoryService
 import com.ilchern.reactivechatservice.service.ChatMessageService
 import com.ilchern.reactivechatservice.service.SessionRegistry
 import com.ilchern.reactivechatservice.service.backpressure.OutboundMessage
@@ -20,6 +21,7 @@ class ChatWebSockerHandler(
   private val objectMapper: ObjectMapper,
   private val sessionRegistry: SessionRegistry,
   private val chatMessageService: ChatMessageService,
+  private val chatHistoryService: ChatHistoryService,
 ) : WebSocketHandler {
 
   override fun handle(session: WebSocketSession): Mono<Void> {
@@ -32,7 +34,7 @@ class ChatWebSockerHandler(
       ?: error("ROLE NOT FOUND")
 
     val sessionSink = sessionRegistry.register(session)
-    val history = chatMessageService.loadRecentHistory(chatId)
+    val history = chatHistoryService.loadRecentHistory(chatId)
       .map(objectMapper::writeValueAsString)
       .map { payload -> OutboundMessage(payload, OutboundMessagePriority.CRITICAL) }
 

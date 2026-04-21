@@ -13,15 +13,15 @@ import java.time.Instant
 import java.util.UUID
 
 @Service
-class DeliveredNotifier(
-  override val eventType: ChatEventType = ChatEventType.CHAT_MESSAGE_DELIVERED,
+class AcceptedNotifier(
+  override val eventType: ChatEventType = ChatEventType.CHAT_MESSAGE_ACCEPTED,
   private val objectMapper: ObjectMapper,
   private val registry: SessionRegistry,
   private val sessionEmitService: SessionEmitService,
 ) : Notifier {
 
   override fun notify(event: ChatEventEnvelope): Mono<Long> {
-    val deliveryEnvelope = ChatEventEnvelope(
+    val acceptanceEnvelope = ChatEventEnvelope(
       eventId = UUID.randomUUID().toString(),
       eventType = eventType,
       correlationId = event.correlationId,
@@ -35,14 +35,13 @@ class DeliveredNotifier(
         )
       ),
     )
-    val payload = objectMapper.writeValueAsString(deliveryEnvelope)
+    val payload = objectMapper.writeValueAsString(acceptanceEnvelope)
 
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId == event.senderId }
       .next()
       .flatMap { session ->
-        sessionEmitService.emit(session, payload)
-          .thenReturn(1L)
+        sessionEmitService.emit(session, payload).thenReturn(1L)
       }
       .defaultIfEmpty(0L)
   }

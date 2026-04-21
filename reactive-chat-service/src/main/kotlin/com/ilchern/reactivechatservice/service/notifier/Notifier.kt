@@ -8,7 +8,7 @@ interface Notifier {
 
   val eventType: ChatEventType
 
-  fun notify(event: ChatEventEnvelope) : Mono<Int>
+  fun notify(event: ChatEventEnvelope): Mono<Long>
 
   fun extractMessageId(event: ChatEventEnvelope): String? {
     return event.payload
@@ -17,4 +17,3 @@ interface Notifier {
       ?.asText()
   }
 }
-
