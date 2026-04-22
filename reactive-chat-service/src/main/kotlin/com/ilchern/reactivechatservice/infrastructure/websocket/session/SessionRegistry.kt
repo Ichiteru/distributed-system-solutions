@@ -3,7 +3,7 @@ package com.ilchern.reactivechatservice.infrastructure.websocket.session
 import com.ilchern.reactivechatservice.config.properties.OutboundBufferProperties
 import com.ilchern.reactivechatservice.infrastructure.metrics.OutboundBufferMetrics
 import com.ilchern.reactivechatservice.infrastructure.metrics.WebSocketSessionMetrics
-import com.ilchern.reactivechatservice.model.domain.ChatParticipantRole
+import com.ilchern.reactivechatservice.model.dto.ChatParticipantRole
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.BackpressurePolicy
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.BoundedBackpressureQueue
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessage

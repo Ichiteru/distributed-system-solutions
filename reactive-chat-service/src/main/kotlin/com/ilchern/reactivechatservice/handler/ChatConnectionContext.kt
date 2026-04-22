@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.handler
 
-import com.ilchern.reactivechatservice.model.domain.ChatParticipantRole
+import com.ilchern.reactivechatservice.model.dto.ChatParticipantRole
 
 data class ChatConnectionContext(
   val sessionId: String,

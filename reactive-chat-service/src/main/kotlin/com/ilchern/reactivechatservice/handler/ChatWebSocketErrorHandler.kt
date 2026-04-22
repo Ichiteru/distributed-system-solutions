@@ -3,7 +3,7 @@ package com.ilchern.reactivechatservice.handler
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessage
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessagePriority
-import com.ilchern.reactivechatservice.model.domain.ChatErrorPayload
+import com.ilchern.reactivechatservice.model.dto.ChatErrorPayload
 import com.ilchern.reactivechatservice.model.dto.ChatEvent
 import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import org.apache.logging.log4j.LogManager

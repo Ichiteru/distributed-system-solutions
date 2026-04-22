@@ -1,10 +1,10 @@
 package com.ilchern.reactivechatservice.application.event
 
-import com.ilchern.reactivechatservice.model.domain.ChatErrorPayload
+import com.ilchern.reactivechatservice.model.dto.ChatErrorPayload
 import com.ilchern.reactivechatservice.model.dto.ChatEvent
 import com.ilchern.reactivechatservice.model.dto.ChatEventType
-import com.ilchern.reactivechatservice.model.domain.ChatMessagePayload
-import com.ilchern.reactivechatservice.model.domain.ChatMessageStatusPayload
+import com.ilchern.reactivechatservice.model.dto.ChatMessagePayload
+import com.ilchern.reactivechatservice.model.dto.ChatMessageStatusPayload
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import org.springframework.stereotype.Component
 import java.time.Instant

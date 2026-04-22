@@ -1,4 +1,4 @@
-package com.ilchern.reactivechatservice.model.domain
+package com.ilchern.reactivechatservice.model.dto
 
 sealed interface ChatEventPayload
 

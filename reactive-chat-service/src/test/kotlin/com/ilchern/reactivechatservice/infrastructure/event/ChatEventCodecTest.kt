@@ -5,7 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.ilchern.reactivechatservice.model.api.IncomingChatSocketMessage
 import com.ilchern.reactivechatservice.model.api.IncomingChatSocketMessagePayload
-import com.ilchern.reactivechatservice.model.domain.ChatMessagePayload
+import com.ilchern.reactivechatservice.model.dto.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.dto.ChatEvent
 import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import org.assertj.core.api.Assertions.assertThat

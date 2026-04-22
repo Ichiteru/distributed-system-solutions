@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.handler
 
-import com.ilchern.reactivechatservice.model.domain.ChatParticipantRole
+import com.ilchern.reactivechatservice.model.dto.ChatParticipantRole
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.socket.WebSocketSession
