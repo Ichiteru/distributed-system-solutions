@@ -9,7 +9,7 @@ import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionR
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-class SenderStatusNotifier(
+class SenderNotifier(
   override val eventType: ChatEventType,
   private val chatEventCodec: ChatEventCodec,
   private val chatEventFactory: ChatEventFactory,

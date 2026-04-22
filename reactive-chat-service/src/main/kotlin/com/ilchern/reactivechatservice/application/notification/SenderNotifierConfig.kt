@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class SenderStatusNotifierConfig {
+class SenderNotifierConfig {
 
   @Bean
   fun acceptedNotifier(
@@ -65,8 +65,8 @@ class SenderStatusNotifierConfig {
     chatEventFactory: ChatEventFactory,
     registry: SessionRegistry,
     sessionEmitService: SessionEmitService,
-  ): SenderStatusNotifier {
-    return SenderStatusNotifier(
+  ): SenderNotifier {
+    return SenderNotifier(
       eventType = eventType,
       chatEventCodec = chatEventCodec,
       chatEventFactory = chatEventFactory,
