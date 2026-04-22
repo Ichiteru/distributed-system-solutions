@@ -45,6 +45,7 @@ logs/
 .env
 .env.*
 *.local
+/README.local.md
 
 # OS
 .DS_Store
