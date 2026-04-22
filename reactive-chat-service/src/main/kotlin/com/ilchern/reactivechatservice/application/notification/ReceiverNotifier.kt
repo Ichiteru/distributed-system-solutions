@@ -6,7 +6,7 @@ import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
 import com.ilchern.reactivechatservice.infrastructure.metrics.DeliveryMetrics
 import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
-import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionOutboundDispatcher
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import com.ilchern.reactivechatservice.infrastructure.websocket.backpressure.OutboundMessagePriority
 import org.springframework.stereotype.Service
@@ -19,7 +19,7 @@ class ReceiverNotifier(
   override val eventType: ChatEventType = ChatEventType.CHAT_MESSAGE_CREATED,
   private val chatEventCodec: ChatEventCodec,
   private val registry: SessionRegistry,
-  private val sessionEmitService: SessionEmitService,
+  private val sessionOutboundDispatcher: SessionOutboundDispatcher,
   private val chatMessageMetrics: ChatMessageMetrics,
   private val deliveryMetrics: DeliveryMetrics,
   private val redisChatEventPublisher: RedisChatEventPublisher,
@@ -32,7 +32,7 @@ class ReceiverNotifier(
     return Flux.fromIterable(registry.getSessionsByChatId(event.chatId))
       .filter { session -> session.userId != event.senderId }
       .flatMap { session ->
-        sessionEmitService.emit(session, payload, priority)
+        sessionOutboundDispatcher.dispatch(session, payload, priority)
           .flatMap { emitResult ->
             when (emitResult) {
               Sinks.EmitResult.OK -> {

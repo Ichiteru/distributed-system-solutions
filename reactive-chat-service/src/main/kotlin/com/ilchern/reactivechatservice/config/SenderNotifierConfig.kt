@@ -4,7 +4,7 @@ import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.application.notification.Notifier
 import com.ilchern.reactivechatservice.application.notification.SenderNotifier
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionOutboundDispatcher
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import org.springframework.context.annotation.Bean
@@ -18,14 +18,14 @@ class SenderNotifierConfig {
     chatEventCodec: ChatEventCodec,
     chatEventFactory: ChatEventFactory,
     registry: SessionRegistry,
-    sessionEmitService: SessionEmitService,
+    sessionOutboundDispatcher: SessionOutboundDispatcher,
   ): Notifier {
     return senderStatusNotifier(
       eventType = ChatEventType.CHAT_MESSAGE_ACCEPTED,
       chatEventCodec = chatEventCodec,
       chatEventFactory = chatEventFactory,
       registry = registry,
-      sessionEmitService = sessionEmitService,
+      sessionOutboundDispatcher = sessionOutboundDispatcher,
     )
   }
 
@@ -34,14 +34,14 @@ class SenderNotifierConfig {
     chatEventCodec: ChatEventCodec,
     chatEventFactory: ChatEventFactory,
     registry: SessionRegistry,
-    sessionEmitService: SessionEmitService,
+    sessionOutboundDispatcher: SessionOutboundDispatcher,
   ): Notifier {
     return senderStatusNotifier(
       eventType = ChatEventType.CHAT_MESSAGE_DELIVERED,
       chatEventCodec = chatEventCodec,
       chatEventFactory = chatEventFactory,
       registry = registry,
-      sessionEmitService = sessionEmitService,
+      sessionOutboundDispatcher = sessionOutboundDispatcher,
     )
   }
 
@@ -50,14 +50,14 @@ class SenderNotifierConfig {
     chatEventCodec: ChatEventCodec,
     chatEventFactory: ChatEventFactory,
     registry: SessionRegistry,
-    sessionEmitService: SessionEmitService,
+    sessionOutboundDispatcher: SessionOutboundDispatcher,
   ): Notifier {
     return senderStatusNotifier(
       eventType = ChatEventType.CHAT_MESSAGE_REJECTED,
       chatEventCodec = chatEventCodec,
       chatEventFactory = chatEventFactory,
       registry = registry,
-      sessionEmitService = sessionEmitService,
+      sessionOutboundDispatcher = sessionOutboundDispatcher,
     )
   }
 
@@ -66,14 +66,14 @@ class SenderNotifierConfig {
     chatEventCodec: ChatEventCodec,
     chatEventFactory: ChatEventFactory,
     registry: SessionRegistry,
-    sessionEmitService: SessionEmitService,
+    sessionOutboundDispatcher: SessionOutboundDispatcher,
   ): SenderNotifier {
     return SenderNotifier(
       eventType = eventType,
       chatEventCodec = chatEventCodec,
       chatEventFactory = chatEventFactory,
       registry = registry,
-      sessionEmitService = sessionEmitService,
+      sessionOutboundDispatcher = sessionOutboundDispatcher,
     )
   }
 }

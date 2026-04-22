@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.application.ratelimit
 
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
+import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionOutboundDispatcher
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import com.ilchern.reactivechatservice.model.dto.ChatEvent
 import org.springframework.stereotype.Component
@@ -14,7 +14,7 @@ class RateLimitRejectionNotifier(
   private val chatEventFactory: ChatEventFactory,
   private val chatEventCodec: ChatEventCodec,
   private val registry: SessionRegistry,
-  private val sessionEmitService: SessionEmitService,
+  private val sessionOutboundDispatcher: SessionOutboundDispatcher,
 ) {
 
   fun notifySender(envelope: ChatEvent): Mono<Int> {
@@ -29,7 +29,7 @@ class RateLimitRejectionNotifier(
     return Flux.fromIterable(registry.getSessionsByChatId(envelope.chatId))
       .filter { session -> session.userId == envelope.senderId }
       .next()
-      .flatMap { session -> sessionEmitService.emit(session, payload).thenReturn(1) }
+      .flatMap { session -> sessionOutboundDispatcher.dispatch(session, payload).thenReturn(1) }
       .defaultIfEmpty(0)
   }
 

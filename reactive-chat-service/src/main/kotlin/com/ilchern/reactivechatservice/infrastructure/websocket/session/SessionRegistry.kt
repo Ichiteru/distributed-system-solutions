@@ -20,7 +20,8 @@ interface SessionRegistry {
 
 @Service
 class InMemorySessionRegistry(
-  private val sessionEmitService: SessionEmitService,
+  private val sessionWorkerResolver: SessionWorkerResolver,
+  private val sessionOutboundDispatcher: SessionOutboundDispatcher,
   private val backpressurePolicy: BackpressurePolicy,
   private val outboundBufferProperties: OutboundBufferProperties,
   private val outboundBufferMetrics: OutboundBufferMetrics,
@@ -31,7 +32,7 @@ class InMemorySessionRegistry(
   private val sessionIdsByChatId = ConcurrentHashMap<String, MutableSet<String>>()
 
   override fun register(request: SessionRegistrationRequest): Sinks.Many<OutboundMessage> {
-    val workerIndex = sessionEmitService.resolveWorkerIndex(request.sessionId)
+    val workerIndex = sessionWorkerResolver.workerIndexFor(request.sessionId)
     val outboundQueue = BoundedBackpressureQueue(
       capacity = outboundBufferProperties.bufferSize,
       backpressurePolicy = backpressurePolicy,
@@ -73,7 +74,7 @@ class InMemorySessionRegistry(
     }
     removed.outboundQueue.clearAndRecordDroppedItems()
     webSocketSessionMetrics.recordRemoved()
-    sessionEmitService.complete(removed)
+    sessionOutboundDispatcher.completeOutbound(removed)
     log.info("[{}:{}] remove sessionId={}", removed.userId, removed.chatId, sessionId)
     return removed
   }
