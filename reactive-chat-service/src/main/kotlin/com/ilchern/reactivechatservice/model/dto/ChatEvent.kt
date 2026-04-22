@@ -1,5 +1,7 @@
 package com.ilchern.reactivechatservice.model.dto
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonValue
 import com.ilchern.reactivechatservice.model.domain.ChatEventPayload
 import java.time.Instant
 
@@ -14,6 +16,7 @@ data class ChatEvent(
 )
 
 enum class ChatEventType(
+  @get:JsonValue
   val value: String,
 ) {
   CHAT_MESSAGE_CREATED("chat.message.created"),
@@ -25,8 +28,10 @@ enum class ChatEventType(
   ERROR("error");
 
   companion object {
+    @JvmStatic
+    @JsonCreator
     fun fromValue(value: String): ChatEventType {
-      return entries.firstOrNull { it.value == value }
+      return entries.firstOrNull { it.value == value || it.name == value }
         ?: error("Unsupported eventType=$value")
     }
   }
