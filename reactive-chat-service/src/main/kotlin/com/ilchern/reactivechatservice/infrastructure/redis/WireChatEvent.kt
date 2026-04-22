@@ -1,4 +1,4 @@
-package com.ilchern.reactivechatservice.infrastructure.event
+package com.ilchern.reactivechatservice.infrastructure.redis
 
 import com.fasterxml.jackson.databind.JsonNode
 import java.time.Instant

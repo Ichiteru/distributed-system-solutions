@@ -1,6 +1,6 @@
 package com.ilchern.reactivechatservice.application.notification
 
-import com.ilchern.reactivechatservice.model.api.ChatEventType
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import org.springframework.stereotype.Service
 
 @Service

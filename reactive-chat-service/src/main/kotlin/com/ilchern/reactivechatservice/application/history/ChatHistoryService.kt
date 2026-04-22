@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.application.history
 
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
 import com.ilchern.reactivechatservice.config.properties.HistoryProperties
-import com.ilchern.reactivechatservice.model.api.ChatEvent
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
 import com.ilchern.reactivechatservice.infrastructure.persistence.mongo.ChatMessageRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort

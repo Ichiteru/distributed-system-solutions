@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.application.message
 
-import com.ilchern.reactivechatservice.model.api.ChatEvent
-import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
+import com.ilchern.reactivechatservice.model.domain.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import com.ilchern.reactivechatservice.model.domain.Payload
 import com.ilchern.reactivechatservice.infrastructure.persistence.mongo.ChatMessageRepository

@@ -1,7 +1,7 @@
 package com.ilchern.reactivechatservice.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ilchern.reactivechatservice.infrastructure.event.WireChatEvent
+import com.ilchern.reactivechatservice.infrastructure.redis.WireChatEvent
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory

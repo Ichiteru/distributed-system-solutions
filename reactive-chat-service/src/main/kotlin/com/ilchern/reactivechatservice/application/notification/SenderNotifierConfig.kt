@@ -2,7 +2,7 @@ package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
 import com.ilchern.reactivechatservice.application.event.ChatEventFactory
-import com.ilchern.reactivechatservice.model.api.ChatEventType
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionEmitService
 import com.ilchern.reactivechatservice.infrastructure.websocket.session.SessionRegistry
 import org.springframework.context.annotation.Bean

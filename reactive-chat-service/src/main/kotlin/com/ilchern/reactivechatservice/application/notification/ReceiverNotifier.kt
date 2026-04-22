@@ -1,8 +1,8 @@
 package com.ilchern.reactivechatservice.application.notification
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.model.api.ChatEvent
-import com.ilchern.reactivechatservice.model.api.ChatEventType
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
 import com.ilchern.reactivechatservice.infrastructure.metrics.DeliveryMetrics
 import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher

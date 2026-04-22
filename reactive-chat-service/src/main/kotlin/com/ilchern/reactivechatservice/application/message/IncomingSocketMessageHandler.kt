@@ -1,9 +1,9 @@
 package com.ilchern.reactivechatservice.application.message
 
 import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
-import com.ilchern.reactivechatservice.model.api.ChatEvent
-import com.ilchern.reactivechatservice.model.api.ChatEventType
-import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
+import com.ilchern.reactivechatservice.model.domain.ChatMessagePayload
 import com.ilchern.reactivechatservice.model.api.IncomingChatSocketMessage
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono

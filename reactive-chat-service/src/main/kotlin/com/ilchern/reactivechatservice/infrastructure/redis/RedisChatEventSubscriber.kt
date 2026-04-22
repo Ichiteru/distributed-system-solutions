@@ -1,10 +1,10 @@
 package com.ilchern.reactivechatservice.infrastructure.redis
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.infrastructure.event.WireChatEvent
+import com.ilchern.reactivechatservice.infrastructure.redis.WireChatEvent
 import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
-import com.ilchern.reactivechatservice.model.domain.Channels
-import com.ilchern.reactivechatservice.model.api.ChatEventType
+import com.ilchern.reactivechatservice.infrastructure.redis.Channels
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import com.ilchern.reactivechatservice.application.notification.NotifierRegistry
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy

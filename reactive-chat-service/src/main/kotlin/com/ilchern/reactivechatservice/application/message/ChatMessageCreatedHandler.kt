@@ -5,8 +5,8 @@ import com.ilchern.reactivechatservice.application.notification.NotifierRegistry
 import com.ilchern.reactivechatservice.application.ratelimit.RateLimiterService
 import com.ilchern.reactivechatservice.infrastructure.metrics.ChatMessageMetrics
 import com.ilchern.reactivechatservice.infrastructure.redis.RedisChatEventPublisher
-import com.ilchern.reactivechatservice.model.api.ChatEvent
-import com.ilchern.reactivechatservice.model.api.ChatEventType
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
 import com.ilchern.reactivechatservice.model.domain.ChatMessage
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono

@@ -1,10 +1,10 @@
 package com.ilchern.reactivechatservice.infrastructure.redis
 
 import com.ilchern.reactivechatservice.infrastructure.event.ChatEventCodec
-import com.ilchern.reactivechatservice.infrastructure.event.WireChatEvent
+import com.ilchern.reactivechatservice.infrastructure.redis.WireChatEvent
 import com.ilchern.reactivechatservice.infrastructure.metrics.RedisPubSubMetrics
-import com.ilchern.reactivechatservice.model.domain.Channels
-import com.ilchern.reactivechatservice.model.api.ChatEvent
+import com.ilchern.reactivechatservice.infrastructure.redis.Channels
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
 import org.apache.logging.log4j.LogManager
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service

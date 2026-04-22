@@ -1,5 +1,6 @@
-package com.ilchern.reactivechatservice.model.api
+package com.ilchern.reactivechatservice.model.dto
 
+import com.ilchern.reactivechatservice.model.domain.ChatEventPayload
 import java.time.Instant
 
 data class ChatEvent(

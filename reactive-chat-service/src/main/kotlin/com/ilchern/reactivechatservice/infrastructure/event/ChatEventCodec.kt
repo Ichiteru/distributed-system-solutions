@@ -1,12 +1,13 @@
 package com.ilchern.reactivechatservice.infrastructure.event
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ilchern.reactivechatservice.model.api.ChatErrorPayload
-import com.ilchern.reactivechatservice.model.api.ChatEvent
-import com.ilchern.reactivechatservice.model.api.ChatEventPayload
-import com.ilchern.reactivechatservice.model.api.ChatEventType
-import com.ilchern.reactivechatservice.model.api.ChatMessagePayload
-import com.ilchern.reactivechatservice.model.api.ChatMessageStatusPayload
+import com.ilchern.reactivechatservice.infrastructure.redis.WireChatEvent
+import com.ilchern.reactivechatservice.model.domain.ChatErrorPayload
+import com.ilchern.reactivechatservice.model.dto.ChatEvent
+import com.ilchern.reactivechatservice.model.domain.ChatEventPayload
+import com.ilchern.reactivechatservice.model.dto.ChatEventType
+import com.ilchern.reactivechatservice.model.domain.ChatMessagePayload
+import com.ilchern.reactivechatservice.model.domain.ChatMessageStatusPayload
 import com.ilchern.reactivechatservice.model.api.IncomingChatSocketMessage
 import org.springframework.stereotype.Component
 
