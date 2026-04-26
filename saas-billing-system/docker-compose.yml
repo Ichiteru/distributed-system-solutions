@@ -1,5 +1,5 @@
 services:
-  postgres:
+  subscription-postgres:
     image: postgres:16
     container_name: saas-billing-subscription-postgres
     command:
@@ -61,7 +61,7 @@ services:
     container_name: saas-billing-kafka-connect
     depends_on:
       - kafka
-      - postgres
+      - subscription-postgres
       - schema-registry
     ports:
       - "8083:8083"
