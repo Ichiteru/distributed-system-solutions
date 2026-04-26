@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: subscription-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/subscription_service_db
+    username: subscription_service_user
+    password: subscription_service_password
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        dialect: org.hibernate.dialect.PostgreSQLDialect

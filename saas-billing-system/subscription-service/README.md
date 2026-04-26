@@ -10,7 +10,7 @@ plan, billing period, seats, pending changes and cancellation intent.
 - Read header-based identity context: organization id, user id and idempotency key.
 - Maintain the `Subscription` aggregate and its lifecycle.
 - Deduplicate public create commands by organization-scoped `Idempotency-Key`.
-- Emit subscription domain events through outbox storage.
+- Emit subscription domain events through transactional outbox storage for Debezium CDC.
 - Apply billing saga outcomes from `billing-orchestrator`: activate, mark past due, suspend and complete cancellation.
 
 The service does not own invoices, payment attempts or saga state. Those belong to `billing-service`,
@@ -31,10 +31,9 @@ flowchart LR
     Orchestrator --> Payment["payment-service"]
 ```
 
-Current implementation has in-memory repository/idempotency adapters and a no-op outbox adapter so
-the module can start without PostgreSQL/Kafka during the first implementation step. The application
-and domain ports are shaped for replacing them with JPA repositories, transactional outbox and inbox
-processors.
+Current implementation persists subscriptions and outbox rows with JPA, and publishes domain events
+through Debezium Outbox CDC. The service no longer polls the outbox table itself; Kafka Connect reads
+committed outbox rows from PostgreSQL and routes them to Kafka.
 
 ## Use Cases
 
@@ -67,7 +66,8 @@ src/main/kotlin/com/ilchern/saasbilling/subscription/
 
   infrastructure/
     config/         Spring beans
-    persistence/    Current in-memory/no-op adapters; future JPA/outbox adapters
+    messaging/      Debezium-compatible outbox storage
+    persistence/    JPA entities, mappers and repositories
     web/            REST controllers, DTOs and web mappers
 ```
 
@@ -86,12 +86,12 @@ infrastructure -> application -> domain
 - Bean Validation for request validation.
 - Spring Boot Actuator.
 
-Planned next infrastructure increment:
+Current local runtime uses:
 
-- Hibernate/JPA persistence with separated entities and domain models.
-- PostgreSQL schema and Flyway migrations.
-- Transactional outbox publisher.
-- Inbox processor for Kafka commands from the orchestrator.
+- PostgreSQL for service data and outbox table storage.
+- Kafka as the destination event bus.
+- Kafka Connect on `confluentinc/cp-kafka-connect` with Debezium PostgreSQL connector installed.
+- Confluent Schema Registry and Avro serialization for Kafka message values.
 
 ## Domain Models
 
@@ -137,6 +137,33 @@ past due marking and suspension.
 
 The module is registered as `:saas-billing-system:subscription-service` and imports dependency
 versions from the root `:platform-dependencies` platform through the monorepo `subprojects` block.
+
+## Local CDC Runtime
+
+Start PostgreSQL, ZooKeeper, Kafka, Schema Registry and Kafka Connect:
+
+```bash
+docker compose -f saas-billing-system/docker-compose.yml up -d
+```
+
+Register the Debezium connector:
+
+```bash
+curl -X POST http://localhost:8083/connectors \
+  -H 'Content-Type: application/json' \
+  -d @saas-billing-system/deploy/cdc/subscription-outbox-connector.json
+```
+
+Then run the service locally so JPA creates the schema and writes outbox rows into PostgreSQL.
+
+Kafka Connect is configured with:
+
+- `StringConverter` for Kafka keys
+- `AvroConverter` for Kafka values
+- Schema Registry at `http://localhost:8081`
+- PostgreSQL database `subscription_service_db`
+
+The Debezium outbox connector expands JSON payload from `outbox_messages.payload` before Avro serialization.
 
 Useful commands:
 

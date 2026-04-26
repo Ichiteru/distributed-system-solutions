@@ -7,7 +7,7 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "outbox_messages")
@@ -16,40 +16,23 @@ class OutboxMessageEntity(
   @Column(name = "id", nullable = false)
   var id: UUID,
 
-  @Column(name = "message_type", nullable = false)
-  var messageType: String,
-
-  @Column(name = "aggregate_id", nullable = false)
-  var aggregateId: UUID,
-
-  @Column(name = "aggregate_type", nullable = false)
+  @Column(name = "aggregatetype", nullable = false)
   var aggregateType: String,
 
-  @Column(name = "correlation_id")
-  var correlationId: UUID? = null,
+  @Column(name = "aggregateid", nullable = false)
+  var aggregateId: String,
 
-  @Column(name = "causation_id")
-  var causationId: UUID? = null,
-
-  @Column(name = "occurred_at", nullable = false)
-  var occurredAt: Instant,
-
-  @Column(name = "schema_version", nullable = false)
-  var schemaVersion: Int,
+  @Column(name = "type", nullable = false)
+  var type: String,
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
-  var payload: String,
+  var payload: Map<String, Any>,
 
-  @Column(name = "published", nullable = false)
-  var published: Boolean = false,
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "headers", nullable = false, columnDefinition = "jsonb")
+  var headers: Map<String, Any>,
 
-  @Column(name = "published_at")
-  var publishedAt: Instant? = null,
-) {
-
-  fun markPublished(publishedAt: Instant) {
-    published = true
-    this.publishedAt = publishedAt
-  }
-}
+  @Column(name = "timestamp", nullable = false)
+  var timestamp: Instant,
+)
