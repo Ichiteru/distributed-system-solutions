@@ -20,3 +20,6 @@ pluginManagement {
 include(":platform-dependencies")
 include(":reactive-chat-service")
 include(":spring-boot-mongo-migration-starter")
+
+include("saas-billing-system")
+include("saas-billing-system:subscription-service")
