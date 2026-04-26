@@ -32,6 +32,9 @@ class Subscription private constructor(
   fun subscriptionPlan() = subscriptionPlan
   fun billingPeriod() = billingPeriod
   fun status() = status
+  fun paymentMethodToken() = paymentMethodToken
+  fun pendingSubscriptionChange() = pendingSubscriptionChange
+  fun historyEntries() = historyEntries.toList()
 
   fun pullDomainEvents() = domainEvents
 
@@ -68,8 +71,8 @@ class Subscription private constructor(
             paymentMethodToken = paymentMethodToken,
             billingPeriod = billingPeriod,
             seats = seats,
-            subscriptionPlan = subscriptionPlan
-          )
+            subscriptionPlan = subscriptionPlan,
+          ),
         ),
         historyEntries = mutableListOf(
           SubscriptionHistoryEntry(
@@ -79,14 +82,39 @@ class Subscription private constructor(
             details = mapOf(
               "plan" to subscriptionPlan.name,
               "billingPeriod" to billingPeriod.name,
-              "seats" to seats.toString()
+              "seats" to seats.toString(),
             ),
           )
-        )
+        ),
       )
 
       return subscription
     }
 
+    fun copy(
+      id: SubscriptionId,
+      organizationId: OrganizationId,
+      createdAt: Instant,
+      status: SubscriptionStatus,
+      subscriptionPlan: SubscriptionPlan,
+      billingPeriod: BillingPeriod,
+      seats: Int,
+      paymentMethodToken: PaymentMethodToken,
+      pendingSubscriptionChange: SubscriptionChange?,
+      historyEntries: List<SubscriptionHistoryEntry>,
+    ): Subscription =
+      Subscription(
+        id = id,
+        organizationId = organizationId,
+        createdAt = createdAt,
+        status = status,
+        subscriptionPlan = subscriptionPlan,
+        billingPeriod = billingPeriod,
+        seats = seats,
+        paymentMethodToken = paymentMethodToken,
+        pendingSubscriptionChange = pendingSubscriptionChange,
+        domainEvents = mutableListOf(),
+        historyEntries = historyEntries.toMutableList(),
+      )
   }
 }

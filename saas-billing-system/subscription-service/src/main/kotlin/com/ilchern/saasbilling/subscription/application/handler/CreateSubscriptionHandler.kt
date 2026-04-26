@@ -4,9 +4,10 @@ import com.ilchern.saasbilling.subscription.application.command.CreateSubscripti
 import com.ilchern.saasbilling.subscription.application.port.IdempotencyKeyStore
 import com.ilchern.saasbilling.subscription.application.port.OutboxMessageStore
 import com.ilchern.saasbilling.subscription.domain.model.Subscription
-import com.ilchern.saasbilling.subscription.infrastructure.persistence.repository.SubscriptionRepository
+import com.ilchern.saasbilling.subscription.domain.repository.SubscriptionRepository
 import java.time.Clock
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class CreateSubscriptionHandler(
@@ -16,6 +17,7 @@ class CreateSubscriptionHandler(
   private val outboxMessageStore: OutboxMessageStore,
 ) {
 
+  @Transactional
   fun handle(command: CreateSubscriptionCommand) : Subscription {
     require(command.idempotencyKey.isNotBlank()) { "Idempotency-Key must not be blank" }
 
@@ -35,7 +37,7 @@ class CreateSubscriptionHandler(
       seats = command.seats,
       organizationId = command.organizationId,
       paymentMethodToken = command.paymentMethodToken,
-      requestedAt = clock.instant()
+      requestedAt = clock.instant(),
     )
 
     subscriptionRepository.save(subscription)
