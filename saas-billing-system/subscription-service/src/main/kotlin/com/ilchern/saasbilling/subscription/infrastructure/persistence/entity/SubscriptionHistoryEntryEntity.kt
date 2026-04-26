@@ -32,11 +32,4 @@ class SubscriptionHistoryEntryEntity(
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "details", nullable = false, columnDefinition = "jsonb")
   var details: MutableMap<String, String> = mutableMapOf(),
-) {
-  constructor() : this(
-    id = UUID.randomUUID(),
-    subscription = SubscriptionEntity(),
-    action = "",
-    occurredAt = Instant.EPOCH,
-  )
-}
+)

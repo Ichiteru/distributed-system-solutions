@@ -29,12 +29,4 @@ class SubscriptionChangeEntity(
 
   @Column(name = "new_seats", nullable = false)
   var newSeats: Int,
-) {
-  constructor() : this(
-    id = UUID.randomUUID(),
-    subscription = SubscriptionEntity(),
-    requestedAt = Instant.EPOCH,
-    newPlan = "",
-    newSeats = 0,
-  )
-}
+)

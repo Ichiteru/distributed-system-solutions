@@ -56,15 +56,4 @@ class SubscriptionEntity(
   )
   @OrderBy("occurredAt ASC, id ASC")
   var historyEntries: MutableList<SubscriptionHistoryEntryEntity> = mutableListOf(),
-) {
-  constructor() : this(
-    id = UUID.randomUUID(),
-    organizationId = "",
-    createdAt = Instant.EPOCH,
-    status = "",
-    subscriptionPlan = "",
-    billingPeriod = "",
-    seats = 0,
-    paymentMethodToken = "",
-  )
-}
+)
