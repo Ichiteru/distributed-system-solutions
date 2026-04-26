@@ -7,7 +7,7 @@ import com.ilchern.saasbilling.subscription.domain.model.SubscriptionPlan
 
 data class CreateSubscriptionCommand(
   val organizationId: OrganizationId,
-//  val idempotencyKey: String,
+  val idempotencyKey: String,
   val plan: SubscriptionPlan,
   val billingPeriod: BillingPeriod,
   val seats: Int,
