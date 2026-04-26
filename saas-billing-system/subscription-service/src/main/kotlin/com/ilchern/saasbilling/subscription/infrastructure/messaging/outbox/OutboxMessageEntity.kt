@@ -46,4 +46,10 @@ class OutboxMessageEntity(
 
   @Column(name = "published_at")
   var publishedAt: Instant? = null,
-)
+) {
+
+  fun markPublished(publishedAt: Instant) {
+    published = true
+    this.publishedAt = publishedAt
+  }
+}
