@@ -1,5 +1,7 @@
 package com.ilchern.saasbilling.subscription.domain.model
 
+import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCancellationRequestedEvent
+import com.ilchern.saasbilling.subscription.domain.event.SubscriptionChangeScheduledEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCreatedEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
 import java.time.Instant
@@ -37,6 +39,62 @@ class Subscription private constructor(
   fun historyEntries() = historyEntries.toList()
 
   fun pullDomainEvents() = domainEvents
+
+
+  fun cancelAtPeriodEnd(occurredAt: Instant) : Subscription {
+
+    require(status == SubscriptionStatus.ACTIVE || status == SubscriptionStatus.PAST_DUE) {
+      "Subscription must be active or past due"
+    }
+
+    status = SubscriptionStatus.CANCEL_AT_PERIOD_END
+
+    historyEntries += SubscriptionHistoryEntry(
+      action = "SUBSCRIPTION_CANCELLATION_AT_PERIOD_END_REQUESTED",
+      occurredAt = occurredAt,
+    )
+    domainEvents += SubscriptionCancellationRequestedEvent(
+      subscriptionId = id,
+      organizationId = organizationId,
+      occurredAt = occurredAt,
+    )
+
+    return this
+  }
+
+  fun scheduleChange(
+    newSeats: Int,
+    newPlan: SubscriptionPlan,
+    requestedAt: Instant,
+  ) : Subscription {
+
+    require(status == SubscriptionStatus.ACTIVE) { "Subscription must be active" }
+    require(newSeats > 0) { "New seats must be positive" }
+
+    historyEntries += SubscriptionHistoryEntry(
+      action = "SUBSCRIPTION_CHANGE_REQUESTED",
+      occurredAt = requestedAt,
+      details = mapOf(
+        "newSeats" to newSeats.toString(),
+        "newPlan" to newPlan.name,
+      ),
+    )
+
+    pendingSubscriptionChange = SubscriptionChange(
+      requestedAt = requestedAt,
+      newPlan = newPlan,
+      newSeats = newSeats,
+    )
+    domainEvents += SubscriptionChangeScheduledEvent(
+      subscriptionId = id,
+      organizationId = organizationId,
+      occurredAt = requestedAt,
+      newPlan = newPlan,
+      newSeats = newSeats,
+    )
+
+    return this
+  }
 
   companion object {
 
@@ -77,7 +135,6 @@ class Subscription private constructor(
         historyEntries = mutableListOf(
           SubscriptionHistoryEntry(
             action = "SUBSCRIPTION_CREATED",
-//            actorUserId = requestedBy,
             occurredAt = requestedAt,
             details = mapOf(
               "plan" to subscriptionPlan.name,
