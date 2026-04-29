@@ -41,6 +41,10 @@ class Subscription private constructor(
   fun pullDomainEvents() = domainEvents
 
   fun activate(occurredAt: Instant): Subscription {
+    if (status == SubscriptionStatus.ACTIVE) {
+      return this
+    }
+
     require(status == SubscriptionStatus.PENDING) {
       "Only pending subscription can be activated"
     }
@@ -48,6 +52,60 @@ class Subscription private constructor(
     status = SubscriptionStatus.ACTIVE
     historyEntries += SubscriptionHistoryEntry(
       action = "SUBSCRIPTION_ACTIVATED",
+      occurredAt = occurredAt,
+    )
+
+    return this
+  }
+
+  fun markPastDue(occurredAt: Instant): Subscription {
+    if (status == SubscriptionStatus.PAST_DUE) {
+      return this
+    }
+
+    require(status == SubscriptionStatus.ACTIVE) {
+      "Only active subscription can be marked past due"
+    }
+
+    status = SubscriptionStatus.PAST_DUE
+    historyEntries += SubscriptionHistoryEntry(
+      action = "SUBSCRIPTION_MARKED_PAST_DUE",
+      occurredAt = occurredAt,
+    )
+
+    return this
+  }
+
+  fun suspend(occurredAt: Instant): Subscription {
+    if (status == SubscriptionStatus.SUSPENDED) {
+      return this
+    }
+
+    require(status == SubscriptionStatus.PAST_DUE) {
+      "Only past due subscription can be suspended"
+    }
+
+    status = SubscriptionStatus.SUSPENDED
+    historyEntries += SubscriptionHistoryEntry(
+      action = "SUBSCRIPTION_SUSPENDED",
+      occurredAt = occurredAt,
+    )
+
+    return this
+  }
+
+  fun completeCancellationAtPeriodEnd(occurredAt: Instant): Subscription {
+    if (status == SubscriptionStatus.CANCELED) {
+      return this
+    }
+
+    require(status == SubscriptionStatus.CANCEL_AT_PERIOD_END) {
+      "Only cancel_at_period_end subscription can be canceled"
+    }
+
+    status = SubscriptionStatus.CANCELED
+    historyEntries += SubscriptionHistoryEntry(
+      action = "SUBSCRIPTION_CANCELED",
       occurredAt = occurredAt,
     )
 
