@@ -27,9 +27,7 @@ class SubscriptionPersistenceMapper {
       billingPeriod = BillingPeriod.valueOf(entity.billingPeriod),
       seats = entity.seats,
       paymentMethodToken = PaymentMethodToken(entity.paymentMethodToken),
-      pendingSubscriptionChange = entity.subscriptionChanges
-        .maxWithOrNull(compareBy<SubscriptionChangeEntity> { it.requestedAt }.thenBy { it.id })
-        ?.let(::toDomainChange),
+      pendingSubscriptionChange = entity.pendingSubscriptionChange?.let(::toDomainChange),
       historyEntries = entity.historyEntries
         .sortedWith(compareBy<SubscriptionHistoryEntryEntity> { it.occurredAt }.thenBy { it.id })
         .map(::toDomainHistoryEntry),
@@ -46,10 +44,7 @@ class SubscriptionPersistenceMapper {
     target.paymentMethodToken = source.paymentMethodToken().value
 
     val pendingChange = source.pendingSubscriptionChange()
-    target.subscriptionChanges.clear()
-    if (pendingChange != null) {
-      target.subscriptionChanges += toEntity(pendingChange, target)
-    }
+    target.pendingSubscriptionChange = pendingChange?.let { toEntity(it, target) }
 
     target.historyEntries.clear()
     target.historyEntries += source.historyEntries().map { toEntity(it, target) }

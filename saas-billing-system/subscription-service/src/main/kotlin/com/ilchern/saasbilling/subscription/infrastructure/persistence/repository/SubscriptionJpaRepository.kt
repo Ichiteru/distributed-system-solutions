@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface SubscriptionJpaRepository : JpaRepository<SubscriptionEntity, UUID> {
 
-  @EntityGraph(attributePaths = ["subscriptionChanges", "historyEntries"])
+  @EntityGraph(attributePaths = ["pendingSubscriptionChange", "historyEntries"])
   fun findDetailedById(id: UUID): SubscriptionEntity?
 }

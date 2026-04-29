@@ -6,6 +6,7 @@ import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
+import jakarta.persistence.OneToOne
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import java.time.Instant
@@ -39,14 +40,13 @@ class SubscriptionEntity(
   @Column(name = "payment_method_token", nullable = false)
   var paymentMethodToken: String,
 
-  @OneToMany(
+  @OneToOne(
     mappedBy = "subscription",
     cascade = [CascadeType.ALL],
     orphanRemoval = true,
     fetch = FetchType.LAZY,
   )
-  @OrderBy("requestedAt DESC, id DESC")
-  var subscriptionChanges: MutableList<SubscriptionChangeEntity> = mutableListOf(),
+  var pendingSubscriptionChange: SubscriptionChangeEntity? = null,
 
   @OneToMany(
     mappedBy = "subscription",

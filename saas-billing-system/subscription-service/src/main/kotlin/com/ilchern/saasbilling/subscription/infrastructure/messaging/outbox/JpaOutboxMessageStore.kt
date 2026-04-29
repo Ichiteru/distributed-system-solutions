@@ -1,6 +1,6 @@
 package com.ilchern.saasbilling.subscription.infrastructure.messaging.outbox
 
-import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.saasbilling.subscription.application.port.OutboxMessageStore
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
@@ -26,7 +26,7 @@ class JpaOutboxMessageStore(
       aggregateType = AGGREGATE_TYPE,
       aggregateId = event.subscriptionId.value.toString(),
       type = event.javaClass.simpleName,
-      payload = objectMapper.valueToTree(event),
+      payload = objectMapper.convertValue(event, PAYLOAD_TYPE_REFERENCE),
       headers = buildHeaders(event),
       timestamp = event.occurredAt,
     )
@@ -40,5 +40,6 @@ class JpaOutboxMessageStore(
   companion object {
     private const val AGGREGATE_TYPE = "subscription"
     private const val SCHEMA_VERSION = 1
+    private val PAYLOAD_TYPE_REFERENCE = object : TypeReference<Map<String, Any>>() {}
   }
 }
