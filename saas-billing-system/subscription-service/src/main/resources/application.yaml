@@ -20,6 +20,9 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         specific.avro.reader: true
+      enable-auto-commit: false
+      max-poll-records: 10
+      isolation-level: read_committed
     properties:
       schema.registry.url: http://localhost:8081
 
@@ -30,3 +33,6 @@ subscription:
         name: subscription.commands
       events:
         name: subscription.events
+
+server:
+  port: 8082

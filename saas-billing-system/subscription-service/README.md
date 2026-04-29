@@ -152,13 +152,8 @@ Start PostgreSQL, ZooKeeper, Kafka, Schema Registry and Kafka Connect:
 docker compose -f saas-billing-system/docker-compose.yml up -d
 ```
 
-Register the Debezium connector:
-
-```bash
-curl -X POST http://localhost:8083/connectors \
-  -H 'Content-Type: application/json' \
-  -d @saas-billing-system/deploy/cdc/subscription-outbox-connector.json
-```
+The Docker Compose stack auto-registers connector definitions from `saas-billing-system/deploy/cdc/`,
+including `subscription-outbox-connector.json`.
 
 Then run the service locally so Flyway creates the schema and the service can write outbox and inbox rows into PostgreSQL.
 
