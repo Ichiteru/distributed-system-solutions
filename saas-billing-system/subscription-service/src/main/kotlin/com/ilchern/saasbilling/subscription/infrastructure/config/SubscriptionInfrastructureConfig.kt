@@ -8,33 +8,15 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.ConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
-import org.springframework.kafka.core.KafkaAdmin.NewTopics
 
 @Configuration
-@EnableConfigurationProperties(SubscriptionKafkaTopicsProperties::class)
 class SubscriptionInfrastructureConfig {
 
   @Bean
   fun clock(): Clock = Clock.systemUTC()
-
-  @Bean
-  fun subscriptionTopics(properties: SubscriptionKafkaTopicsProperties): NewTopics =
-    NewTopics(
-      TopicBuilder
-        .name(properties.commands.name)
-        .partitions(properties.commands.partitions)
-        .replicas(properties.commands.replicationFactor)
-        .build(),
-      TopicBuilder
-        .name(properties.events.name)
-        .partitions(properties.events.partitions)
-        .replicas(properties.events.replicationFactor)
-        .build(),
-    )
 
   @Bean
   fun subscriptionCommandConsumerFactory(

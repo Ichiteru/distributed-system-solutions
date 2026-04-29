@@ -14,7 +14,7 @@ spring:
           time_zone: UTC
         dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:29092
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
@@ -28,9 +28,5 @@ subscription:
     topics:
       commands:
         name: subscription.commands
-        partitions: 3
-        replication-factor: 1
       events:
         name: subscription.events
-        partitions: 3
-        replication-factor: 1
