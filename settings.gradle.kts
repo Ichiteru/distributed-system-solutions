@@ -14,6 +14,7 @@ pluginManagement {
     id("org.jetbrains.kotlin.jvm") version kotlinVersion
     id("org.jetbrains.kotlin.plugin.spring") version kotlinVersion
     id("org.jetbrains.kotlin.plugin.jpa") version kotlinVersion
+    id("com.github.davidmc24.gradle.plugin.avro") version "1.7.1"
   }
 }
 
@@ -22,4 +23,5 @@ include(":reactive-chat-service")
 include(":spring-boot-mongo-migration-starter")
 
 include("saas-billing-system")
+include("saas-billing-system:billing-contracts")
 include("saas-billing-system:subscription-service")

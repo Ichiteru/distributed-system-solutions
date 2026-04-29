@@ -40,6 +40,19 @@ class Subscription private constructor(
 
   fun pullDomainEvents() = domainEvents
 
+  fun activate(occurredAt: Instant): Subscription {
+    require(status == SubscriptionStatus.PENDING) {
+      "Only pending subscription can be activated"
+    }
+
+    status = SubscriptionStatus.ACTIVE
+    historyEntries += SubscriptionHistoryEntry(
+      action = "SUBSCRIPTION_ACTIVATED",
+      occurredAt = occurredAt,
+    )
+
+    return this
+  }
 
   fun cancelAtPeriodEnd(occurredAt: Instant) : Subscription {
 

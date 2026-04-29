@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "subscription.kafka.topics")
 data class SubscriptionKafkaTopicsProperties(
+  val commands: TopicProperties,
   val events: TopicProperties,
 ) {
   data class TopicProperties(

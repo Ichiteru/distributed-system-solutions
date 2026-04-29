@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "MessageMetadata",
+  "namespace": "com.ilchern.saasbilling.contracts.messaging",
+  "fields": [
+    { "name": "messageId", "type": "string" },
+    { "name": "messageType", "type": "string" },
+    { "name": "aggregateId", "type": "string" },
+    { "name": "aggregateType", "type": "string" },
+    { "name": "correlationId", "type": ["null", "string"], "default": null },
+    { "name": "causationId", "type": ["null", "string"], "default": null },
+    { "name": "occurredAt", "type": "string" },
+    { "name": "schemaVersion", "type": "int" }
+  ]
+}

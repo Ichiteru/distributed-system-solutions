@@ -11,7 +11,7 @@ plan, billing period, seats, pending changes and cancellation intent.
 - Maintain the `Subscription` aggregate and its lifecycle.
 - Deduplicate public create commands by organization-scoped `Idempotency-Key`.
 - Emit subscription domain events through transactional outbox storage for Debezium CDC.
-- Apply billing saga outcomes from `billing-orchestrator`: activate, mark past due, suspend and complete cancellation.
+- Consume billing saga outcome commands from `billing-orchestrator` through Kafka inbox processing, starting with `ActivateSubscription`.
 
 The service does not own invoices, payment attempts or saga state. Those belong to `billing-service`,
 `payment-service` and `billing-orchestrator`.
@@ -31,9 +31,11 @@ flowchart LR
     Orchestrator --> Payment["payment-service"]
 ```
 
-Current implementation persists subscriptions and outbox rows with JPA, and publishes domain events
-through Debezium Outbox CDC. The service no longer polls the outbox table itself; Kafka Connect reads
-committed outbox rows from PostgreSQL and routes them to Kafka.
+Current implementation persists subscriptions and outbox rows with JPA, publishes domain events
+through Debezium Outbox CDC, and consumes orchestrator outcome commands through a Kafka inbox flow.
+Incoming `ActivateSubscription` commands are deserialized as Avro `SpecificRecord` contracts from the
+shared `:saas-billing-system:billing-contracts` module. Kafka Connect reads committed outbox rows from
+PostgreSQL and routes them to Kafka.
 
 ## Use Cases
 
@@ -42,9 +44,9 @@ committed outbox rows from PostgreSQL and routes them to Kafka.
 - Schedule plan/seats change:
   `POST /api/v1/subscriptions/{id}/changes` stores the latest pending change for the next billing period.
 - Cancel at period end:
-  `POST /api/v1/subscriptions/{id}/cancel` marks an active or past due subscription as `cancel_at_period_end`.
+  `POST /api/v1/subscriptions/{id}/cancel-at-period-end` marks an active or past due subscription as `cancel_at_period_end`.
 - Apply saga outcome:
-  `POST /api/v1/subscriptions/{id}/outcomes` applies internal lifecycle outcomes from the orchestrator.
+  `ActivateSubscription` is consumed from `subscription.commands` as a shared Avro contract and activates a pending subscription through inbox deduplication.
 - Query subscriptions:
   `GET /api/v1/subscriptions/{id}` and `GET /api/v1/subscriptions` read current local state.
 
@@ -66,7 +68,7 @@ src/main/kotlin/com/ilchern/saasbilling/subscription/
 
   infrastructure/
     config/         Spring beans
-    messaging/      Debezium-compatible outbox storage
+    messaging/      Debezium-compatible outbox storage and Kafka inbox consumers
     persistence/    JPA entities, mappers and repositories
     web/            REST controllers, DTOs and web mappers
 ```
@@ -89,6 +91,7 @@ infrastructure -> application -> domain
 Current local runtime uses:
 
 - PostgreSQL for service data and outbox table storage.
+- Flyway for schema migrations.
 - Kafka as the destination event bus.
 - Kafka Connect on `confluentinc/cp-kafka-connect` with Debezium PostgreSQL connector installed.
 - Confluent Schema Registry and Avro serialization for Kafka message values.
@@ -116,6 +119,7 @@ Main invariants:
 - Plan/seats changes are scheduled and do not modify the current paid period immediately.
 - Cancellation is at period end and does not delete subscription history.
 - `SUSPENDED` can be reached only from `PAST_DUE`.
+- Kafka write consumers use `inbox_messages` for deduplication and transactional processing.
 
 ### PendingSubscriptionChange
 
@@ -132,11 +136,13 @@ past due marking and suspension.
 - `SubscriptionCreated`: starts initial billing saga.
 - `SubscriptionChangeScheduled`: informs billing/orchestrator that the next renewal should use new terms.
 - `SubscriptionCancellationRequested`: informs orchestrator that renewal must stop at period end.
+- `ActivateSubscription`: incoming orchestrator command that transitions a pending subscription to active.
 
 ## Gradle
 
 The module is registered as `:saas-billing-system:subscription-service` and imports dependency
 versions from the root `:platform-dependencies` platform through the monorepo `subprojects` block.
+Kafka transport contracts are imported from `:saas-billing-system:billing-contracts`.
 
 ## Local CDC Runtime
 
@@ -154,7 +160,7 @@ curl -X POST http://localhost:8083/connectors \
   -d @saas-billing-system/deploy/cdc/subscription-outbox-connector.json
 ```
 
-Then run the service locally so JPA creates the schema and writes outbox rows into PostgreSQL.
+Then run the service locally so Flyway creates the schema and the service can write outbox and inbox rows into PostgreSQL.
 
 Kafka Connect is configured with:
 

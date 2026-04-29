@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "ActivateSubscriptionCommand",
+  "namespace": "com.ilchern.saasbilling.contracts.messaging.subscription",
+  "fields": [
+    {
+      "name": "metadata",
+      "type": "com.ilchern.saasbilling.contracts.messaging.MessageMetadata"
+    },
+    { "name": "subscriptionId", "type": "string" },
+    { "name": "organizationId", "type": "string" }
+  ]
+}
