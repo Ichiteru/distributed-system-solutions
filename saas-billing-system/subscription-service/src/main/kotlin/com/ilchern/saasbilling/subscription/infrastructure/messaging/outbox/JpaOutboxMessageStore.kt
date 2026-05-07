@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.saasbilling.subscription.application.port.OutboxMessageStore
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
 import org.springframework.stereotype.Repository
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @Repository
 class JpaOutboxMessageStore(
@@ -28,7 +30,7 @@ class JpaOutboxMessageStore(
       type = event.javaClass.simpleName,
       payload = objectMapper.convertValue(event, PAYLOAD_TYPE_REFERENCE),
       headers = buildHeaders(event),
-      timestamp = event.occurredAt.toEpochMilli(),
+      timestamp = LocalDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC),
     )
 
   private fun buildHeaders(event: SubscriptionDomainEvent): Map<String, Any> =
