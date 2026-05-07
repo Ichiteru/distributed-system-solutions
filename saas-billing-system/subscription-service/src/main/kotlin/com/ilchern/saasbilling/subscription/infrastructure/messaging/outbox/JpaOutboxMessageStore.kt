@@ -28,7 +28,7 @@ class JpaOutboxMessageStore(
       type = event.javaClass.simpleName,
       payload = objectMapper.convertValue(event, PAYLOAD_TYPE_REFERENCE),
       headers = buildHeaders(event),
-      timestamp = event.occurredAt,
+      timestamp = event.occurredAt.toEpochMilli(),
     )
 
   private fun buildHeaders(event: SubscriptionDomainEvent): Map<String, Any> =
