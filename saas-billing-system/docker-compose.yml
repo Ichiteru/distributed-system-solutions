@@ -17,6 +17,24 @@ services:
       POSTGRES_USER: subscription_service_user
       POSTGRES_PASSWORD: subscription_service_password
 
+  billing-postgres:
+    image: postgres:16
+    container_name: saas-billing-billing-postgres
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: billing_service_db
+      POSTGRES_USER: billing_service_user
+      POSTGRES_PASSWORD: billing_service_password
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.4
     container_name: saas-billing-zookeeper
@@ -83,6 +101,7 @@ services:
       - kafka
       - kafka-init-topics
       - subscription-postgres
+      - billing-postgres
       - schema-registry
     ports:
       - "8083:8083"

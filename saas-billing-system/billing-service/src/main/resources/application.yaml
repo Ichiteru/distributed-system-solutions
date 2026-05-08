@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: billing-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/billing_service_db
+    username: billing_service_user
+    password: billing_service_password
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        specific.avro.reader: true
+      enable-auto-commit: false
+      max-poll-records: 10
+      isolation-level: read_committed
+    properties:
+      schema.registry.url: http://localhost:8081
+
+billing:
+  kafka:
+    topics:
+      commands:
+        name: billing.commands
+      events:
+        name: billing.events
+
+server:
+  port: 8084

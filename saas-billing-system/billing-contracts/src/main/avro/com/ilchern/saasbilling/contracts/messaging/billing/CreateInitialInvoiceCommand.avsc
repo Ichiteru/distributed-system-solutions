@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "CreateInitialInvoiceCommand",
+  "namespace": "com.ilchern.saasbilling.contracts.messaging.billing",
+  "fields": [
+    {
+      "name": "metadata",
+      "type": "com.ilchern.saasbilling.contracts.messaging.MessageMetadata"
+    },
+    { "name": "subscriptionId", "type": "string" },
+    { "name": "organizationId", "type": "string" },
+    { "name": "plan", "type": "string" },
+    { "name": "billingPeriod", "type": "string" },
+    { "name": "seats", "type": "int" },
+    { "name": "paymentMethodToken", "type": "string" }
+  ]
+}

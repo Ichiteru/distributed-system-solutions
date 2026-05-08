@@ -24,4 +24,5 @@ include(":spring-boot-mongo-migration-starter")
 
 include("saas-billing-system")
 include("saas-billing-system:billing-contracts")
+include("saas-billing-system:billing-service")
 include("saas-billing-system:subscription-service")
