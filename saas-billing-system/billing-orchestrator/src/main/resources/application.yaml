@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: billing-orchestrator
+  datasource:
+    url: jdbc:postgresql://localhost:5434/orchestrator_service_db
+    username: orchestrator_service_user
+    password: orchestrator_service_password
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      enable-auto-commit: false
+      max-poll-records: 10
+      isolation-level: read_committed
+    properties:
+      schema.registry.url: http://localhost:8081
+
+orchestrator:
+  kafka:
+    topics:
+      subscription-events: subscription.events
+      billing-events: billing.events
+  sagas:
+    initial-subscription-billing:
+      start-event: SubscriptionCreatedEvent
+      initial-status: STARTED
+      terminal-statuses:
+        - INITIAL_INVOICE_CREATED
+      business-key-paths:
+        SubscriptionCreatedEvent: $.payload.subscriptionId
+        InvoiceCreatedEvent: $.payload.subscriptionId
+      transitions:
+        - from: STARTED
+          "on": InvoiceCreatedEvent
+          to: INITIAL_INVOICE_CREATED
+
+server:
+  port: 8085

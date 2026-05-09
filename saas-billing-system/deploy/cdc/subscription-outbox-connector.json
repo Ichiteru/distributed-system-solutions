@@ -22,7 +22,7 @@
     "transforms.outbox.table.field.event.id": "id",
     "transforms.outbox.table.field.event.payload": "payload",
     "transforms.outbox.table.field.event.timestamp": "timestamp",
-    "transforms.outbox.table.expand.json.payload": "true",
-    "transforms.outbox.table.fields.additional.placement": "headers:header"
+    "transforms.outbox.table.expand.json.payload": "false",
+    "transforms.outbox.table.fields.additional.placement": "id:envelope:id,type:envelope:type,aggregatetype:envelope:aggregatetype,aggregateid:envelope:aggregateid,timestamp:envelope:timestamp,headers:envelope:headers"
   }
 }

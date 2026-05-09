@@ -35,6 +35,16 @@ services:
       POSTGRES_USER: billing_service_user
       POSTGRES_PASSWORD: billing_service_password
 
+  orchestrator-postgres:
+    image: postgres:16
+    container_name: saas-billing-orchestrator-postgres
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: orchestrator_service_db
+      POSTGRES_USER: orchestrator_service_user
+      POSTGRES_PASSWORD: orchestrator_service_password
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.4
     container_name: saas-billing-zookeeper
