@@ -106,10 +106,7 @@ class SagaEventHandler(
     definition: SagaFlowProperties.SagaDefinition,
     envelope: OutboxMessageEnvelope,
   ): String {
-    val path = requireNotNull(definition.businessKeyPaths[envelope.type]) {
-      "Missing business key path for event ${envelope.type}"
-    }
-    return pathExtractor.requiredString(envelope, path)
+    return pathExtractor.requiredString(envelope, definition.businessKeyPath)
   }
 
   private fun extractContext(

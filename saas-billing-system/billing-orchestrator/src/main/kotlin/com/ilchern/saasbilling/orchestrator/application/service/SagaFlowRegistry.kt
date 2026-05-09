@@ -16,7 +16,6 @@ class SagaFlowRegistry(
     properties.sagas.entries
       .filter { (_, definition) ->
         definition.startEvent == eventType ||
-          definition.businessKeyPaths.containsKey(eventType) ||
           definition.transitions.any { transition -> transition.on == eventType }
       }
       .map { (sagaType, definition) -> SagaDefinitionEntry(sagaType, definition) }

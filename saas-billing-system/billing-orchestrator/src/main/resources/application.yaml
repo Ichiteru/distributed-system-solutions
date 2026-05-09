@@ -35,9 +35,7 @@ orchestrator:
       initial-status: STARTED
       terminal-statuses:
         - INITIAL_INVOICE_CREATED
-      business-key-paths:
-        SubscriptionCreatedEvent: $.payload.subscriptionId
-        InvoiceCreatedEvent: $.payload.subscriptionId
+      business-key-path: $.payload.subscriptionId
       transitions:
         - from: STARTED
           "on": InvoiceCreatedEvent

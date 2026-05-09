@@ -11,7 +11,7 @@ data class SagaFlowProperties(
     val startEvent: String,
     val initialStatus: String,
     val terminalStatuses: Set<String> = emptySet(),
-    val businessKeyPaths: Map<String, String> = emptyMap(),
+    val businessKeyPath: String,
     val context: Map<String, Map<String, String>> = emptyMap(),
     val transitions: List<SagaTransition> = emptyList(),
   )
