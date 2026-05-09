@@ -17,6 +17,7 @@ class SagaDecisionService {
     return SagaDecision(
       nextStatus = transition.to,
       terminal = definition.terminalStatuses.contains(transition.to),
+      emit = transition.emit,
     )
   }
 }
@@ -24,4 +25,5 @@ class SagaDecisionService {
 data class SagaDecision(
   val nextStatus: String,
   val terminal: Boolean,
+  val emit: SagaFlowProperties.SagaEmit?,
 )

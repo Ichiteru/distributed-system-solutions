@@ -1,0 +1,29 @@
+{
+  "name": "orchestrator-command-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "orchestrator-postgres",
+    "database.port": "5432",
+    "database.user": "orchestrator_service_user",
+    "database.password": "orchestrator_service_password",
+    "database.dbname": "orchestrator_service_db",
+    "database.server.name": "billing-orchestrator-commands",
+    "topic.prefix": "billing-orchestrator-commands",
+    "plugin.name": "pgoutput",
+    "publication.autocreate.mode": "filtered",
+    "schema.include.list": "public",
+    "table.include.list": "public.command_outbox",
+    "tombstones.on.delete": "false",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.route.by.field": "destination_topic",
+    "transforms.outbox.route.topic.replacement": "${routedByValue}",
+    "transforms.outbox.table.field.event.key": "aggregateid",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.timestamp": "timestamp",
+    "transforms.outbox.table.expand.json.payload": "false",
+    "transforms.outbox.table.fields.additional.placement": "id:envelope:id,type:envelope:type,aggregatetype:envelope:aggregatetype,aggregateid:envelope:aggregateid,timestamp:envelope:timestamp,headers:envelope:headers"
+  }
+}

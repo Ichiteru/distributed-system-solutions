@@ -38,6 +38,12 @@ orchestrator:
       business-key-path: $.payload.subscriptionId
       transitions:
         - from: STARTED
+          "on": SubscriptionCreatedEvent
+          to: INITIAL_INVOICE_REQUESTED
+          emit:
+            topic: billing.commands
+            type: CreateInitialInvoice
+        - from: INITIAL_INVOICE_REQUESTED
           "on": InvoiceCreatedEvent
           to: INITIAL_INVOICE_CREATED
 

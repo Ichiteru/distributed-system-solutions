@@ -2,6 +2,8 @@ package com.ilchern.saasbilling.orchestrator.application.handler
 
 import com.ilchern.saasbilling.messaging.inbox.InboxMessage
 import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
+import com.ilchern.saasbilling.orchestrator.application.port.CommandOutboxMessage
+import com.ilchern.saasbilling.orchestrator.application.port.CommandOutboxMessageStore
 import com.ilchern.saasbilling.orchestrator.application.service.EnvelopePathExtractor
 import com.ilchern.saasbilling.orchestrator.application.service.OutboxMessageEnvelope
 import com.ilchern.saasbilling.orchestrator.application.service.SagaDecisionService
@@ -20,6 +22,7 @@ class SagaEventHandler(
   private val sagaFlowRegistry: SagaFlowRegistry,
   private val sagaDecisionService: SagaDecisionService,
   private val billingSagaRepository: BillingSagaRepository,
+  private val commandOutboxMessageStore: CommandOutboxMessageStore,
   private val pathExtractor: EnvelopePathExtractor,
 ) {
 
@@ -46,7 +49,7 @@ class SagaEventHandler(
     val extractedContext = extractContext(context.definition, envelope)
     context.saga.mergeMetadata(extractedContext)
 
-    if (context.started) {
+    if (context.startEvent && !context.created) {
       billingSagaRepository.save(context.saga)
       return
     }
@@ -62,6 +65,18 @@ class SagaEventHandler(
       occurredAt = clock.instant(),
     )
     billingSagaRepository.save(context.saga)
+
+    decision.emit?.let { emit ->
+      commandOutboxMessageStore.append(
+        buildCommandOutboxMessage(
+          saga = context.saga,
+          sagaType = context.sagaType,
+          businessKey = context.businessKey,
+          envelope = envelope,
+          emit = emit,
+        ),
+      )
+    }
   }
 
   private fun findOrStartSaga(envelope: OutboxMessageEnvelope): SagaContext {
@@ -70,7 +85,14 @@ class SagaEventHandler(
         val businessKey = businessKey(entry.definition, envelope)
         val existingSaga = billingSagaRepository.findBySagaTypeAndBusinessKey(entry.sagaType, businessKey)
         if (existingSaga != null) {
-          return SagaContext(entry.sagaType, entry.definition, existingSaga, started = true)
+          return SagaContext(
+            sagaType = entry.sagaType,
+            definition = entry.definition,
+            saga = existingSaga,
+            businessKey = businessKey,
+            startEvent = true,
+            created = false,
+          )
         }
 
         return SagaContext(
@@ -84,7 +106,9 @@ class SagaEventHandler(
             metadata = extractContext(entry.definition, envelope),
             startedAt = clock.instant(),
           ),
-          started = true,
+          businessKey = businessKey,
+          startEvent = true,
+          created = true,
         )
       }
 
@@ -95,7 +119,14 @@ class SagaEventHandler(
       val businessKey = businessKey(entry.definition, envelope)
       val saga = billingSagaRepository.findBySagaTypeAndBusinessKey(entry.sagaType, businessKey)
       if (saga != null) {
-        return SagaContext(entry.sagaType, entry.definition, saga, started = false)
+        return SagaContext(
+          sagaType = entry.sagaType,
+          definition = entry.definition,
+          saga = saga,
+          businessKey = businessKey,
+          startEvent = false,
+          created = false,
+        )
       }
     }
 
@@ -114,6 +145,45 @@ class SagaEventHandler(
     envelope: OutboxMessageEnvelope,
   ): Map<String, Any> =
     pathExtractor.extractContext(envelope, definition.context[envelope.type].orEmpty())
+
+  private fun buildCommandOutboxMessage(
+    saga: BillingSaga,
+    sagaType: String,
+    businessKey: String,
+    envelope: OutboxMessageEnvelope,
+    emit: SagaFlowProperties.SagaEmit,
+  ): CommandOutboxMessage {
+    val now = clock.instant()
+    return CommandOutboxMessage(
+      id = UUID.randomUUID(),
+      destinationTopic = emit.topic,
+      aggregateType = envelope.aggregateType,
+      aggregateId = businessKey,
+      type = emit.type,
+      payload = envelope.payload,
+      headers = commandHeaders(
+        saga = saga,
+        sagaType = sagaType,
+        envelope = envelope,
+        emit = emit,
+      ),
+      timestamp = now,
+    )
+  }
+
+  private fun commandHeaders(
+    saga: BillingSaga,
+    sagaType: String,
+    envelope: OutboxMessageEnvelope,
+    emit: SagaFlowProperties.SagaEmit,
+  ): Map<String, Any> =
+    buildMap {
+      put("schemaVersion", emit.schemaVersion)
+      put("sagaId", saga.id.toString())
+      put("sagaType", sagaType)
+      saga.correlationId?.let { put("correlationId", it.toString()) }
+      put("causationId", envelope.id.toString())
+    }
 
   private fun correlationId(
     envelope: OutboxMessageEnvelope,
@@ -137,6 +207,8 @@ class SagaEventHandler(
     val sagaType: String,
     val definition: SagaFlowProperties.SagaDefinition,
     val saga: BillingSaga,
-    val started: Boolean,
+    val businessKey: String,
+    val startEvent: Boolean,
+    val created: Boolean,
   )
 }

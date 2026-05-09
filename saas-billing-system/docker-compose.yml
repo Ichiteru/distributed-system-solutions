@@ -38,6 +38,14 @@ services:
   orchestrator-postgres:
     image: postgres:16
     container_name: saas-billing-orchestrator-postgres
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
     ports:
       - "5434:5432"
     environment:
@@ -112,6 +120,7 @@ services:
       - kafka-init-topics
       - subscription-postgres
       - billing-postgres
+      - orchestrator-postgres
       - schema-registry
     ports:
       - "8083:8083"

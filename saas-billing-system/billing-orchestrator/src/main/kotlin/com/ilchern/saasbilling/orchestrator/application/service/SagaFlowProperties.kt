@@ -20,5 +20,12 @@ data class SagaFlowProperties(
     val from: String,
     val on: String,
     val to: String,
+    val emit: SagaEmit? = null,
+  )
+
+  data class SagaEmit(
+    val topic: String,
+    val type: String,
+    val schemaVersion: Int = 1,
   )
 }
