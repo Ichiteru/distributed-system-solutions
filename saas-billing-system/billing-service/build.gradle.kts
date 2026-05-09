@@ -13,6 +13,7 @@ kotlin {
 
 dependencies {
   implementation(project(":saas-billing-system:billing-contracts"))
+  implementation(project(":saas-billing-system:messaging-jpa-starter"))
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.kafka:spring-kafka")

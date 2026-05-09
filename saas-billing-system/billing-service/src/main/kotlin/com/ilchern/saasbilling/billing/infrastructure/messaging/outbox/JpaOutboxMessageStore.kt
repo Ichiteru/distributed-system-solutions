@@ -3,32 +3,27 @@ package com.ilchern.saasbilling.billing.infrastructure.messaging.outbox
 import com.ilchern.saasbilling.billing.application.port.OutboxMessageStore
 import com.ilchern.saasbilling.billing.domain.event.BillingDomainEvent
 import com.ilchern.saasbilling.billing.domain.event.InvoiceCreatedEvent
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import com.ilchern.saasbilling.messaging.outbox.OutboxMessage
+import com.ilchern.saasbilling.messaging.outbox.TransactionalOutboxMessageStore
 import org.springframework.stereotype.Repository
 
 @Repository
 class JpaOutboxMessageStore(
-  private val outboxMessageJpaRepository: OutboxMessageJpaRepository,
+  private val transactionalOutboxMessageStore: TransactionalOutboxMessageStore,
 ) : OutboxMessageStore {
 
-  override fun append(events: List<BillingDomainEvent>) {
-    if (events.isEmpty()) {
-      return
-    }
+  override fun append(events: List<BillingDomainEvent>) =
+    transactionalOutboxMessageStore.append(events.map(::toOutboxMessage))
 
-    outboxMessageJpaRepository.saveAll(events.map(::toEntity))
-  }
-
-  private fun toEntity(event: BillingDomainEvent): OutboxMessageEntity =
-    OutboxMessageEntity(
+  private fun toOutboxMessage(event: BillingDomainEvent): OutboxMessage =
+    OutboxMessage(
       id = event.eventId,
       aggregateType = AGGREGATE_TYPE,
       aggregateId = event.invoiceId.value.toString(),
       type = event.javaClass.simpleName,
       payload = buildPayload(event),
       headers = buildHeaders(event),
-      timestamp = LocalDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC),
+      occurredAt = event.occurredAt,
     )
 
   private fun buildPayload(event: BillingDomainEvent): Map<String, Any> =

@@ -2,14 +2,14 @@ package com.ilchern.saasbilling.billing.infrastructure.messaging.kafka
 
 import com.ilchern.saasbilling.billing.application.command.CreateInitialInvoiceCommand
 import com.ilchern.saasbilling.billing.application.handler.CreateInitialInvoiceHandler
-import com.ilchern.saasbilling.billing.application.port.InboxMessage
 import com.ilchern.saasbilling.billing.domain.model.BillingPeriod
 import com.ilchern.saasbilling.billing.domain.model.OrganizationId
 import com.ilchern.saasbilling.billing.domain.model.PaymentMethodToken
 import com.ilchern.saasbilling.billing.domain.model.SubscriptionId
 import com.ilchern.saasbilling.billing.domain.model.SubscriptionPlan
-import com.ilchern.saasbilling.billing.infrastructure.messaging.inbox.InboxMessageProcessor
 import com.ilchern.saasbilling.contracts.messaging.billing.CreateInitialInvoiceCommand as CreateInitialInvoiceCommandMessage
+import com.ilchern.saasbilling.messaging.inbox.InboxMessage
+import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID

@@ -4,33 +4,28 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ilchern.saasbilling.subscription.application.port.OutboxMessageStore
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
+import com.ilchern.saasbilling.messaging.outbox.OutboxMessage
+import com.ilchern.saasbilling.messaging.outbox.TransactionalOutboxMessageStore
 import org.springframework.stereotype.Repository
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 
 @Repository
 class JpaOutboxMessageStore(
-  private val outboxMessageJpaRepository: OutboxMessageJpaRepository,
+  private val transactionalOutboxMessageStore: TransactionalOutboxMessageStore,
   private val objectMapper: ObjectMapper,
 ) : OutboxMessageStore {
 
-  override fun append(events: List<SubscriptionDomainEvent>) {
-    if (events.isEmpty()) {
-      return
-    }
+  override fun append(events: List<SubscriptionDomainEvent>) =
+    transactionalOutboxMessageStore.append(events.map(::toOutboxMessage))
 
-    outboxMessageJpaRepository.saveAll(events.map(::toEntity))
-  }
-
-  private fun toEntity(event: SubscriptionDomainEvent): OutboxMessageEntity =
-    OutboxMessageEntity(
+  private fun toOutboxMessage(event: SubscriptionDomainEvent): OutboxMessage =
+    OutboxMessage(
       id = event.eventId,
       aggregateType = AGGREGATE_TYPE,
       aggregateId = event.subscriptionId.value.toString(),
       type = event.javaClass.simpleName,
       payload = objectMapper.convertValue(event, PAYLOAD_TYPE_REFERENCE),
       headers = buildHeaders(event),
-      timestamp = LocalDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC),
+      occurredAt = event.occurredAt,
     )
 
   private fun buildHeaders(event: SubscriptionDomainEvent): Map<String, Any> =

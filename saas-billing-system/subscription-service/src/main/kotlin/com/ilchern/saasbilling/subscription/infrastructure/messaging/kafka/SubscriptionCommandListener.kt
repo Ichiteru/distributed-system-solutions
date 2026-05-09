@@ -12,10 +12,10 @@ import com.ilchern.saasbilling.subscription.application.handler.ActivateSubscrip
 import com.ilchern.saasbilling.subscription.application.handler.CompleteSubscriptionCancellationHandler
 import com.ilchern.saasbilling.subscription.application.handler.MarkSubscriptionPastDueHandler
 import com.ilchern.saasbilling.subscription.application.handler.SuspendSubscriptionHandler
-import com.ilchern.saasbilling.subscription.application.port.InboxMessage
 import com.ilchern.saasbilling.subscription.domain.model.OrganizationId
 import com.ilchern.saasbilling.subscription.domain.model.SubscriptionId
-import com.ilchern.saasbilling.subscription.infrastructure.messaging.inbox.InboxMessageProcessor
+import com.ilchern.saasbilling.messaging.inbox.InboxMessage
+import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
