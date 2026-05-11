@@ -4,6 +4,7 @@ import com.ilchern.saasbilling.payment.application.port.PaymentProviderClient
 import com.ilchern.saasbilling.payment.application.port.SubmitProviderPaymentRequest
 import com.ilchern.saasbilling.payment.application.port.SubmitProviderPaymentResponse
 import com.ilchern.saasbilling.payment.domain.model.ProviderPaymentReference
+import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
@@ -14,6 +15,7 @@ class WireMockPaymentProviderClient(
 
   private val restClient = RestClient.builder()
     .baseUrl(paymentProviderProperties.baseUrl)
+    .requestFactory(SimpleClientHttpRequestFactory())
     .build()
 
   override fun submitPayment(request: SubmitProviderPaymentRequest): SubmitProviderPaymentResponse {
