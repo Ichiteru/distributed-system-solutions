@@ -53,6 +53,24 @@ services:
       POSTGRES_USER: orchestrator_service_user
       POSTGRES_PASSWORD: orchestrator_service_password
 
+  payment-postgres:
+    image: postgres:16
+    container_name: saas-billing-payment-postgres
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: payment_service_db
+      POSTGRES_USER: payment_service_user
+      POSTGRES_PASSWORD: payment_service_password
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.4
     container_name: saas-billing-zookeeper
@@ -109,6 +127,16 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+
+  wiremock:
+    image: wiremock/wiremock:3.9.2
+    container_name: saas-billing-wiremock
+    ports:
+      - "8089:8080"
+    command:
+      - --global-response-templating
+    volumes:
+      - ./deploy/wiremock:/home/wiremock:ro
 
   kafka-connect:
     build:

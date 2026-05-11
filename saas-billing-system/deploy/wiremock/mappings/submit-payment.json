@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/payments"
+  },
+  "response": {
+    "status": 202,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{ \"providerPaymentId\": \"{{jsonPath request.body '$.invoiceId'}}\", \"status\": \"accepted\" }",
+    "transformers": ["response-template"]
+  }
+}
