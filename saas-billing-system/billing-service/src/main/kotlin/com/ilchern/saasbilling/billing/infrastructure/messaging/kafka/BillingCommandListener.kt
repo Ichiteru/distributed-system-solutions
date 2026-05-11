@@ -7,19 +7,18 @@ import com.ilchern.saasbilling.billing.domain.model.OrganizationId
 import com.ilchern.saasbilling.billing.domain.model.PaymentMethodToken
 import com.ilchern.saasbilling.billing.domain.model.SubscriptionId
 import com.ilchern.saasbilling.billing.domain.model.SubscriptionPlan
-import com.ilchern.saasbilling.contracts.messaging.billing.CreateInitialInvoiceCommand as CreateInitialInvoiceCommandMessage
 import com.ilchern.saasbilling.messaging.inbox.InboxMessage
 import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
 import java.time.Clock
-import java.time.Instant
 import java.util.UUID
-import org.apache.avro.specific.SpecificRecord
+import org.apache.avro.generic.GenericRecord
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
 class BillingCommandListener(
   private val clock: Clock,
+  private val envelopeReader: OutboxMessageEnvelopeReader,
   private val inboxMessageProcessor: InboxMessageProcessor,
   private val createInitialInvoiceHandler: CreateInitialInvoiceHandler,
 ) {
@@ -29,125 +28,97 @@ class BillingCommandListener(
     groupId = "\${spring.application.name}",
     containerFactory = "billingCommandKafkaListenerContainerFactory",
   )
-  fun onMessage(message: SpecificRecord) {
-    when (message) {
-      is CreateInitialInvoiceCommandMessage -> handleCreateInitialInvoice(message)
-      else -> error("Unsupported billing command type: ${message.schema.fullName}")
+  fun onMessage(record: GenericRecord) {
+    val envelope = envelopeReader.read(record)
+    when (envelope.type) {
+      CREATE_INITIAL_INVOICE_MESSAGE_TYPE -> handleCreateInitialInvoice(envelope)
+      else -> error("Unsupported billing command type: ${envelope.type}")
     }
   }
 
-  private fun handleCreateInitialInvoice(message: CreateInitialInvoiceCommandMessage) {
-    val context = parseContext(
-      consumer = CREATE_INITIAL_INVOICE_CONSUMER,
-      messageType = CREATE_INITIAL_INVOICE_MESSAGE_TYPE,
-      subscriptionId = message.subscriptionId.toString(),
-      metadata = message.metadata,
-    )
+  private fun handleCreateInitialInvoice(envelope: OutboxMessageEnvelope) {
+    val subscriptionId = UUID.fromString(requiredString(envelope.payload, "subscriptionId"))
+    require(envelope.aggregateId == subscriptionId.toString()) {
+      "aggregateid ${envelope.aggregateId} does not match subscriptionId $subscriptionId"
+    }
 
-    process(context, message) {
+    process(envelope) {
       createInitialInvoiceHandler.handle(
         CreateInitialInvoiceCommand(
-          subscriptionId = SubscriptionId(context.subscriptionId),
-          organizationId = OrganizationId(message.organizationId.toString()),
-          subscriptionPlan = SubscriptionPlan.valueOf(message.plan.toString()),
-          billingPeriod = BillingPeriod.valueOf(message.billingPeriod.toString()),
-          seats = message.seats,
-          paymentMethodToken = PaymentMethodToken(message.paymentMethodToken.toString()),
-          messageId = context.messageId,
-          correlationId = context.correlationId,
-          causationId = context.causationId,
-          occurredAt = context.occurredAt,
+          subscriptionId = SubscriptionId(subscriptionId),
+          organizationId = OrganizationId(requiredString(envelope.payload, "organizationId")),
+          subscriptionPlan = SubscriptionPlan.valueOf(requiredString(envelope.payload, "subscriptionPlan", "plan")),
+          billingPeriod = BillingPeriod.valueOf(requiredString(envelope.payload, "billingPeriod")),
+          seats = requiredInt(envelope.payload, "seats"),
+          paymentMethodToken = PaymentMethodToken(requiredString(envelope.payload, "paymentMethodToken")),
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
         ),
       )
     }
   }
 
   private fun process(
-    context: CommandContext,
-    message: CreateInitialInvoiceCommandMessage,
+    envelope: OutboxMessageEnvelope,
     action: () -> Unit,
   ) {
     inboxMessageProcessor.process(
       message = InboxMessage(
-        consumer = context.consumer,
-        messageId = context.messageId,
-        messageType = context.messageType,
-        aggregateId = context.subscriptionId.toString(),
-        correlationId = context.correlationId,
-        causationId = context.causationId,
+        consumer = CREATE_INITIAL_INVOICE_CONSUMER,
+        messageId = envelope.id,
+        messageType = envelope.type,
+        aggregateId = envelope.aggregateId,
+        correlationId = optionalUuid(envelope.headers["correlationId"]),
+        causationId = optionalUuid(envelope.headers["causationId"]),
         receivedAt = clock.instant(),
-        payload = mapOf(
-          "subscriptionId" to context.subscriptionId.toString(),
-          "organizationId" to message.organizationId.toString(),
-          "plan" to message.plan.toString(),
-          "billingPeriod" to message.billingPeriod.toString(),
-          "seats" to message.seats,
-          "paymentMethodToken" to message.paymentMethodToken.toString(),
-        ),
-        headers = buildHeaders(context),
+        payload = envelope.payload,
+        headers = envelopeHeaders(envelope),
       ),
     ) {
       action()
     }
   }
 
-  private fun parseContext(
-    consumer: String,
-    messageType: String,
-    subscriptionId: String,
-    metadata: com.ilchern.saasbilling.contracts.messaging.MessageMetadata?,
-  ): CommandContext {
-    val requiredMetadata = requireNotNull(metadata) { "metadata must not be null" }
-    require(requiredMetadata.messageType.toString() == messageType) {
-      "Unsupported billing command type: ${requiredMetadata.messageType}"
-    }
-
-    val parsedSubscriptionId = UUID.fromString(subscriptionId)
-    require(requiredMetadata.aggregateId.toString() == parsedSubscriptionId.toString()) {
-      "aggregateId ${requiredMetadata.aggregateId} does not match subscriptionId $parsedSubscriptionId"
-    }
-    require(requiredMetadata.aggregateType.toString() == AGGREGATE_TYPE) {
-      "Unsupported aggregate type ${requiredMetadata.aggregateType}"
-    }
-
-    return CommandContext(
-      consumer = consumer,
-      messageType = messageType,
-      subscriptionId = parsedSubscriptionId,
-      messageId = UUID.fromString(requiredMetadata.messageId.toString()),
-      correlationId = requiredMetadata.correlationId?.takeIf { it.isNotBlank() }?.let(UUID::fromString),
-      causationId = requiredMetadata.causationId?.takeIf { it.isNotBlank() }?.let(UUID::fromString),
-      occurredAt = Instant.parse(requiredMetadata.occurredAt.toString()),
-      schemaVersion = requiredMetadata.schemaVersion,
+  private fun envelopeHeaders(envelope: OutboxMessageEnvelope): Map<String, Any> =
+    envelope.headers + mapOf(
+      "id" to envelope.id.toString(),
+      "type" to envelope.type,
+      "aggregateid" to envelope.aggregateId,
+      "aggregatetype" to envelope.aggregateType,
+      "timestamp" to envelope.timestamp.toString(),
     )
+
+  private fun requiredString(
+    payload: Map<String, Any>,
+    vararg fields: String,
+  ): String =
+    fields.firstNotNullOfOrNull { field -> payload[field]?.let(::scalarString) }
+      ?: error("Missing command payload field ${fields.joinToString(" or ")}")
+
+  private fun requiredInt(
+    payload: Map<String, Any>,
+    field: String,
+  ): Int {
+    val value = requireNotNull(payload[field]) { "Missing command payload field $field" }
+    return when (value) {
+      is Number -> value.toInt()
+      else -> value.toString().toInt()
+    }
   }
 
-  private fun buildHeaders(context: CommandContext): Map<String, Any> =
-    buildMap {
-      put("messageId", context.messageId.toString())
-      put("messageType", context.messageType)
-      put("aggregateId", context.subscriptionId.toString())
-      put("aggregateType", AGGREGATE_TYPE)
-      put("occurredAt", context.occurredAt.toString())
-      context.correlationId?.let { put("correlationId", it.toString()) }
-      context.causationId?.let { put("causationId", it.toString()) }
-      put("schemaVersion", context.schemaVersion)
+  private fun scalarString(value: Any): String =
+    when (value) {
+      is Map<*, *> -> requireNotNull(value["value"]) { "Missing value in command payload scalar wrapper" }.toString()
+      else -> value.toString()
     }
 
-  private data class CommandContext(
-    val consumer: String,
-    val messageType: String,
-    val subscriptionId: UUID,
-    val messageId: UUID,
-    val correlationId: UUID?,
-    val causationId: UUID?,
-    val occurredAt: Instant,
-    val schemaVersion: Int,
-  )
+  private fun optionalUuid(value: Any?): UUID? =
+    value?.toString()?.takeIf { it.isNotBlank() }?.let(UUID::fromString)
 
   companion object {
     private const val CREATE_INITIAL_INVOICE_CONSUMER = "billing.create-initial-invoice"
     private const val CREATE_INITIAL_INVOICE_MESSAGE_TYPE = "CreateInitialInvoice"
-    private const val AGGREGATE_TYPE = "subscription"
   }
 }

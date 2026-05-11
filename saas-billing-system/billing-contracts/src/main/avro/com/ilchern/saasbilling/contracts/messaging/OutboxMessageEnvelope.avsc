@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "OutboxMessageEnvelope",
+  "namespace": "com.ilchern.saasbilling.contracts.messaging",
+  "fields": [
+    { "name": "id", "type": "string" },
+    { "name": "type", "type": "string" },
+    { "name": "aggregatetype", "type": "string" },
+    { "name": "aggregateid", "type": "string" },
+    { "name": "timestamp", "type": "string" },
+    { "name": "headers", "type": "string" },
+    { "name": "payload", "type": "string" }
+  ]
+}
