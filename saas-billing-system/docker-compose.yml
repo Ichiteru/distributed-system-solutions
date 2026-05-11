@@ -142,6 +142,9 @@ services:
       CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_EXACTLY_ONCE_SOURCE_SUPPORT: enabled
+      CONNECT_PRODUCER_ACKS: all
+      CONNECT_PRODUCER_ENABLE_IDEMPOTENCE: "true"
 
   kafka-connect-init:
     image: python:3.12-alpine

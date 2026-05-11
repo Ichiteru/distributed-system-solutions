@@ -10,6 +10,8 @@
     "database.dbname": "billing_service_db",
     "database.server.name": "billing-service",
     "topic.prefix": "billing-service",
+    "exactly.once.support": "required",
+    "transaction.boundary": "poll",
     "plugin.name": "pgoutput",
     "publication.autocreate.mode": "filtered",
     "schema.include.list": "public",

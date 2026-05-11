@@ -10,6 +10,8 @@
     "database.dbname": "subscription_service_db",
     "database.server.name": "subscription-service",
     "topic.prefix": "subscription-service",
+    "exactly.once.support": "required",
+    "transaction.boundary": "poll",
     "plugin.name": "pgoutput",
     "publication.autocreate.mode": "filtered",
     "schema.include.list": "public",
