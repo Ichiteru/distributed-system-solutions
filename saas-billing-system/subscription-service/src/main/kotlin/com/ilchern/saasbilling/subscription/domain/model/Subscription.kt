@@ -1,6 +1,7 @@
 package com.ilchern.saasbilling.subscription.domain.model
 
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCancellationRequestedEvent
+import com.ilchern.saasbilling.subscription.domain.event.SubscriptionActivatedEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionChangeScheduledEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCreatedEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
@@ -53,6 +54,12 @@ class Subscription private constructor(
     historyEntries += SubscriptionHistoryEntry(
       action = "SUBSCRIPTION_ACTIVATED",
       occurredAt = occurredAt,
+    )
+    domainEvents += SubscriptionActivatedEvent(
+      subscriptionId = id,
+      organizationId = organizationId,
+      occurredAt = occurredAt,
+      activatedAt = occurredAt,
     )
 
     return this

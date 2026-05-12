@@ -27,6 +27,7 @@ data class SagaFlowProperties(
     val topic: String,
     val type: String,
     val schemaVersion: Int = 1,
+    val aggregateType: String? = null,
     val aggregateIdPath: String? = null,
   )
 }

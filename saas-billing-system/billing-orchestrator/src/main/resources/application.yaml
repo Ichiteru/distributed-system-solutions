@@ -31,6 +31,8 @@ orchestrator:
     initial-subscription-billing:
       start-event: SubscriptionCreatedEvent
       initial-status: STARTED
+      terminal-statuses:
+        - COMPLETED
       business-key-path: $.payload.subscriptionId
       transitions:
         - from: STARTED
@@ -46,6 +48,17 @@ orchestrator:
             topic: payment.commands
             type: SubmitPayment
             aggregate-id-path: $.payload.invoiceId
+        - from: PAYMENT_REQUESTED
+          "on": InvoicePaidEvent
+          to: ACTIVATION_REQUESTED
+          emit:
+            topic: subscription.commands
+            type: ActivateSubscription
+            aggregate-type: subscription
+            aggregate-id-path: $.payload.subscriptionId
+        - from: ACTIVATION_REQUESTED
+          "on": SubscriptionActivatedEvent
+          to: COMPLETED
 
 server:
   port: 8085

@@ -8,9 +8,14 @@ import java.util.UUID
 
 data class SubscriptionChangeScheduledEvent(
   override val eventId: UUID = UUID.randomUUID(),
+  override val type: String = TYPE,
   override val subscriptionId: SubscriptionId,
   override val organizationId: OrganizationId,
   override val occurredAt: Instant,
   val newPlan: SubscriptionPlan,
   val newSeats: Int,
-) : SubscriptionDomainEvent
+) : SubscriptionDomainEvent {
+  companion object {
+    const val TYPE = "SubscriptionChangeScheduledEvent"
+  }
+}

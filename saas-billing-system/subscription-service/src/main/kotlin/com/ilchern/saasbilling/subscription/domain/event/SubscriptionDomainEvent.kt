@@ -8,6 +8,7 @@ import java.util.UUID
 interface SubscriptionDomainEvent {
 
   val eventId: UUID
+  val type: String
   val subscriptionId: SubscriptionId
   val organizationId: OrganizationId
   val occurredAt: Instant

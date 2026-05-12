@@ -157,7 +157,7 @@ class SagaEventHandler(
     return CommandOutboxMessage(
       id = UUID.randomUUID(),
       destinationTopic = emit.topic,
-      aggregateType = envelope.aggregateType,
+      aggregateType = emit.aggregateType ?: envelope.aggregateType,
       aggregateId = emit.aggregateIdPath?.let { pathExtractor.requiredString(envelope, it) } ?: businessKey,
       type = emit.type,
       payload = envelope.payload,

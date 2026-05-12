@@ -1,9 +1,7 @@
 package com.ilchern.saasbilling.subscription.infrastructure.messaging.kafka
 
-import com.ilchern.saasbilling.contracts.messaging.subscription.ActivateSubscriptionCommand as ActivateSubscriptionCommandMessage
-import com.ilchern.saasbilling.contracts.messaging.subscription.CancelSubscriptionAtPeriodEndCommand as CancelSubscriptionAtPeriodEndCommandMessage
-import com.ilchern.saasbilling.contracts.messaging.subscription.MarkSubscriptionPastDueCommand as MarkSubscriptionPastDueCommandMessage
-import com.ilchern.saasbilling.contracts.messaging.subscription.SuspendSubscriptionCommand as SuspendSubscriptionCommandMessage
+import com.ilchern.saasbilling.messaging.inbox.InboxMessage
+import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
 import com.ilchern.saasbilling.subscription.application.command.ActivateSubscriptionCommand
 import com.ilchern.saasbilling.subscription.application.command.CompleteSubscriptionCancellationCommand
 import com.ilchern.saasbilling.subscription.application.command.MarkSubscriptionPastDueCommand
@@ -14,18 +12,16 @@ import com.ilchern.saasbilling.subscription.application.handler.MarkSubscription
 import com.ilchern.saasbilling.subscription.application.handler.SuspendSubscriptionHandler
 import com.ilchern.saasbilling.subscription.domain.model.OrganizationId
 import com.ilchern.saasbilling.subscription.domain.model.SubscriptionId
-import com.ilchern.saasbilling.messaging.inbox.InboxMessage
-import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
 import java.time.Clock
-import java.time.Instant
 import java.util.UUID
-import org.apache.avro.specific.SpecificRecord
+import org.apache.avro.generic.GenericRecord
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
 class SubscriptionCommandListener(
   private val clock: Clock,
+  private val envelopeReader: OutboxMessageEnvelopeReader,
   private val inboxMessageProcessor: InboxMessageProcessor,
   private val activateSubscriptionHandler: ActivateSubscriptionHandler,
   private val markSubscriptionPastDueHandler: MarkSubscriptionPastDueHandler,
@@ -38,103 +34,96 @@ class SubscriptionCommandListener(
     groupId = "\${spring.application.name}",
     containerFactory = "subscriptionCommandKafkaListenerContainerFactory",
   )
-  fun onMessage(message: SpecificRecord) {
-    when (message) {
-      is ActivateSubscriptionCommandMessage -> handleActivateSubscription(message)
-      is MarkSubscriptionPastDueCommandMessage -> handleMarkSubscriptionPastDue(message)
-      is SuspendSubscriptionCommandMessage -> handleSuspendSubscription(message)
-      is CancelSubscriptionAtPeriodEndCommandMessage -> handleCancelSubscriptionAtPeriodEnd(message)
-      else -> error("Unsupported subscription command type: ${message.schema.fullName}")
+  fun onMessage(record: GenericRecord) {
+    val envelope = envelopeReader.read(record)
+    when (envelope.type) {
+      ACTIVATE_SUBSCRIPTION_MESSAGE_TYPE -> handleActivateSubscription(envelope)
+      MARK_SUBSCRIPTION_PAST_DUE_MESSAGE_TYPE -> handleMarkSubscriptionPastDue(envelope)
+      SUSPEND_SUBSCRIPTION_MESSAGE_TYPE -> handleSuspendSubscription(envelope)
+      CANCEL_SUBSCRIPTION_AT_PERIOD_END_MESSAGE_TYPE -> handleCancelSubscriptionAtPeriodEnd(envelope)
+      else -> error("Unsupported subscription command type: ${envelope.type}")
     }
   }
 
-  private fun handleActivateSubscription(message: ActivateSubscriptionCommandMessage) {
+  private fun handleActivateSubscription(envelope: OutboxMessageEnvelope) {
     val context = parseContext(
+      envelope = envelope,
       consumer = ACTIVATE_SUBSCRIPTION_CONSUMER,
       messageType = ACTIVATE_SUBSCRIPTION_MESSAGE_TYPE,
-      subscriptionId = message.subscriptionId.toString(),
-      organizationId = message.organizationId.toString(),
-      metadata = message.metadata,
     )
 
-    process(context) {
+    process(context, envelope) {
       activateSubscriptionHandler.handle(
         ActivateSubscriptionCommand(
           subscriptionId = SubscriptionId(context.subscriptionId),
           organizationId = OrganizationId(context.organizationId),
-          messageId = context.messageId,
-          correlationId = context.correlationId,
-          causationId = context.causationId,
-          occurredAt = context.occurredAt,
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
         ),
       )
     }
   }
 
-  private fun handleMarkSubscriptionPastDue(message: MarkSubscriptionPastDueCommandMessage) {
+  private fun handleMarkSubscriptionPastDue(envelope: OutboxMessageEnvelope) {
     val context = parseContext(
+      envelope = envelope,
       consumer = MARK_SUBSCRIPTION_PAST_DUE_CONSUMER,
       messageType = MARK_SUBSCRIPTION_PAST_DUE_MESSAGE_TYPE,
-      subscriptionId = message.subscriptionId.toString(),
-      organizationId = message.organizationId.toString(),
-      metadata = message.metadata,
     )
 
-    process(context) {
+    process(context, envelope) {
       markSubscriptionPastDueHandler.handle(
         MarkSubscriptionPastDueCommand(
           subscriptionId = SubscriptionId(context.subscriptionId),
           organizationId = OrganizationId(context.organizationId),
-          messageId = context.messageId,
-          correlationId = context.correlationId,
-          causationId = context.causationId,
-          occurredAt = context.occurredAt,
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
         ),
       )
     }
   }
 
-  private fun handleSuspendSubscription(message: SuspendSubscriptionCommandMessage) {
+  private fun handleSuspendSubscription(envelope: OutboxMessageEnvelope) {
     val context = parseContext(
+      envelope = envelope,
       consumer = SUSPEND_SUBSCRIPTION_CONSUMER,
       messageType = SUSPEND_SUBSCRIPTION_MESSAGE_TYPE,
-      subscriptionId = message.subscriptionId.toString(),
-      organizationId = message.organizationId.toString(),
-      metadata = message.metadata,
     )
 
-    process(context) {
+    process(context, envelope) {
       suspendSubscriptionHandler.handle(
         SuspendSubscriptionCommand(
           subscriptionId = SubscriptionId(context.subscriptionId),
           organizationId = OrganizationId(context.organizationId),
-          messageId = context.messageId,
-          correlationId = context.correlationId,
-          causationId = context.causationId,
-          occurredAt = context.occurredAt,
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
         ),
       )
     }
   }
 
-  private fun handleCancelSubscriptionAtPeriodEnd(message: CancelSubscriptionAtPeriodEndCommandMessage) {
+  private fun handleCancelSubscriptionAtPeriodEnd(envelope: OutboxMessageEnvelope) {
     val context = parseContext(
+      envelope = envelope,
       consumer = CANCEL_SUBSCRIPTION_AT_PERIOD_END_CONSUMER,
       messageType = CANCEL_SUBSCRIPTION_AT_PERIOD_END_MESSAGE_TYPE,
-      subscriptionId = message.subscriptionId.toString(),
-      organizationId = message.organizationId.toString(),
-      metadata = message.metadata,
     )
 
-    process(context) {
+    process(context, envelope) {
       completeSubscriptionCancellationHandler.handle(
         CompleteSubscriptionCancellationCommand(
           subscriptionId = SubscriptionId(context.subscriptionId),
           organizationId = OrganizationId(context.organizationId),
-          messageId = context.messageId,
-          correlationId = context.correlationId,
-          causationId = context.causationId,
-          occurredAt = context.occurredAt,
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
         ),
       )
     }
@@ -142,22 +131,20 @@ class SubscriptionCommandListener(
 
   private fun process(
     context: CommandContext,
+    envelope: OutboxMessageEnvelope,
     action: () -> Unit,
   ) {
     inboxMessageProcessor.process(
       message = InboxMessage(
         consumer = context.consumer,
-        messageId = context.messageId,
-        messageType = context.messageType,
-        aggregateId = context.subscriptionId.toString(),
-        correlationId = context.correlationId,
-        causationId = context.causationId,
+        messageId = envelope.id,
+        messageType = envelope.type,
+        aggregateId = envelope.aggregateId,
+        correlationId = optionalUuid(envelope.headers["correlationId"]),
+        causationId = optionalUuid(envelope.headers["causationId"]),
         receivedAt = clock.instant(),
-        payload = mapOf(
-          "subscriptionId" to context.subscriptionId.toString(),
-          "organizationId" to context.organizationId,
-        ),
-        headers = buildHeaders(context),
+        payload = envelope.payload,
+        headers = envelopeHeaders(envelope),
       ),
     ) {
       action()
@@ -165,60 +152,58 @@ class SubscriptionCommandListener(
   }
 
   private fun parseContext(
+    envelope: OutboxMessageEnvelope,
     consumer: String,
     messageType: String,
-    subscriptionId: String,
-    organizationId: String,
-    metadata: com.ilchern.saasbilling.contracts.messaging.MessageMetadata?,
   ): CommandContext {
-    val requiredMetadata = requireNotNull(metadata) { "metadata must not be null" }
-    require(requiredMetadata.messageType.toString() == messageType) {
-      "Unsupported subscription command type: ${requiredMetadata.messageType}"
+    require(envelope.type == messageType) {
+      "Unsupported subscription command type: ${envelope.type}"
+    }
+    require(envelope.aggregateType == AGGREGATE_TYPE) {
+      "Unsupported aggregate type ${envelope.aggregateType}"
     }
 
-    val parsedSubscriptionId = UUID.fromString(subscriptionId)
-    require(requiredMetadata.aggregateId.toString() == parsedSubscriptionId.toString()) {
-      "aggregateId ${requiredMetadata.aggregateId} does not match subscriptionId $parsedSubscriptionId"
-    }
-    require(requiredMetadata.aggregateType.toString() == AGGREGATE_TYPE) {
-      "Unsupported aggregate type ${requiredMetadata.aggregateType}"
+    val subscriptionId = UUID.fromString(requiredString(envelope.payload, "subscriptionId"))
+    require(envelope.aggregateId == subscriptionId.toString()) {
+      "aggregateId ${envelope.aggregateId} does not match subscriptionId $subscriptionId"
     }
 
     return CommandContext(
       consumer = consumer,
-      messageType = messageType,
-      subscriptionId = parsedSubscriptionId,
-      organizationId = organizationId,
-      messageId = UUID.fromString(requiredMetadata.messageId.toString()),
-      correlationId = requiredMetadata.correlationId?.takeIf { it.isNotBlank() }?.let(UUID::fromString),
-      causationId = requiredMetadata.causationId?.takeIf { it.isNotBlank() }?.let(UUID::fromString),
-      occurredAt = Instant.parse(requiredMetadata.occurredAt.toString()),
-      schemaVersion = requiredMetadata.schemaVersion,
+      subscriptionId = subscriptionId,
+      organizationId = requiredString(envelope.payload, "organizationId"),
     )
   }
 
-  private fun buildHeaders(context: CommandContext): Map<String, Any> =
-    buildMap {
-      put("messageId", context.messageId.toString())
-      put("messageType", context.messageType)
-      put("aggregateId", context.subscriptionId.toString())
-      put("aggregateType", AGGREGATE_TYPE)
-      put("occurredAt", context.occurredAt.toString())
-      context.correlationId?.let { put("correlationId", it.toString()) }
-      context.causationId?.let { put("causationId", it.toString()) }
-      put("schemaVersion", context.schemaVersion)
+  private fun envelopeHeaders(envelope: OutboxMessageEnvelope): Map<String, Any> =
+    envelope.headers + mapOf(
+      "id" to envelope.id.toString(),
+      "type" to envelope.type,
+      "aggregateid" to envelope.aggregateId,
+      "aggregatetype" to envelope.aggregateType,
+      "timestamp" to envelope.timestamp.toString(),
+    )
+
+  private fun requiredString(
+    payload: Map<String, Any>,
+    field: String,
+  ): String =
+    payload[field]?.let(::scalarString)
+      ?: error("Missing command payload field $field")
+
+  private fun scalarString(value: Any): String =
+    when (value) {
+      is Map<*, *> -> requireNotNull(value["value"]) { "Missing value in command payload scalar wrapper" }.toString()
+      else -> value.toString()
     }
+
+  private fun optionalUuid(value: Any?): UUID? =
+    value?.toString()?.takeIf { it.isNotBlank() }?.let(UUID::fromString)
 
   private data class CommandContext(
     val consumer: String,
-    val messageType: String,
     val subscriptionId: UUID,
     val organizationId: String,
-    val messageId: UUID,
-    val correlationId: UUID?,
-    val causationId: UUID?,
-    val occurredAt: Instant,
-    val schemaVersion: Int,
   )
 
   companion object {
