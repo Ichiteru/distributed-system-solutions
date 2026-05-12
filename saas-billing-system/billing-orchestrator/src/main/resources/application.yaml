@@ -1,10 +1,13 @@
+server:
+  port: ${SERVER.PORT}
+
 spring:
   application:
-    name: billing-orchestrator
+    name: ${SPRING.APPLICATION.NAME}
   datasource:
-    url: jdbc:postgresql://localhost:5434/orchestrator_service_db
-    username: orchestrator_service_user
-    password: orchestrator_service_password
+    url: ${SPRING.DATASOURCE.URL}
+    username: ${SPRING.DATASOURCE.USERNAME}
+    password: ${SPRING.DATASOURCE.PASSWORD}
   jpa:
     hibernate:
       ddl-auto: none
@@ -12,7 +15,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: ${SPRING.KAFKA.BOOTSTRAP_SERVERS}
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
@@ -20,13 +23,13 @@ spring:
       max-poll-records: 10
       isolation-level: read_committed
     properties:
-      schema.registry.url: http://localhost:8081
+      schema.registry.url: ${SPRING.KAFKA.PROPERTIES.SCHEMA.REGISTRY.URL}
 
 orchestrator:
   kafka:
     topics:
-      subscription-events: subscription.events
-      billing-events: billing.events
+      subscription-events: ${ORCHESTRATOR.KAFKA.TOPICS.SUBSCRIPTION_EVENTS}
+      billing-events: ${ORCHESTRATOR.KAFKA.TOPICS.BILLING_EVENTS}
   sagas:
     initial-subscription-billing:
       start-event: SubscriptionCreatedEvent
@@ -59,6 +62,3 @@ orchestrator:
         - from: ACTIVATION_REQUESTED
           "on": SubscriptionActivatedEvent
           to: COMPLETED
-
-server:
-  port: 8085

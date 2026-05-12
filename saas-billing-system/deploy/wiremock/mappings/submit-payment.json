@@ -16,7 +16,7 @@
       "name": "webhook",
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:8086/webhooks/payment-provider",
+        "url": "http://payment-service:8086/webhooks/payment-provider",
         "headers": {
           "Content-Type": "application/json"
         },

@@ -133,12 +133,83 @@ services:
     container_name: saas-billing-wiremock
     ports:
       - "8089:8080"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     command:
       - --global-response-templating
     volumes:
       - ./deploy/wiremock:/home/wiremock:ro
+
+  subscription-service:
+    build:
+      context: ..
+      dockerfile: saas-billing-system/deploy/services/Dockerfile
+      args:
+        MODULE: ":saas-billing-system:subscription-service"
+    image: saas-billing/subscription-service:local
+    container_name: saas-billing-subscription-service
+    restart: on-failure
+    depends_on:
+      - subscription-postgres
+      - kafka-init-topics
+      - schema-registry
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+  billing-service:
+    build:
+      context: ..
+      dockerfile: saas-billing-system/deploy/services/Dockerfile
+      args:
+        MODULE: ":saas-billing-system:billing-service"
+    image: saas-billing/billing-service:local
+    container_name: saas-billing-billing-service
+    restart: on-failure
+    depends_on:
+      - billing-postgres
+      - kafka-init-topics
+      - schema-registry
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+  billing-orchestrator:
+    build:
+      context: ..
+      dockerfile: saas-billing-system/deploy/services/Dockerfile
+      args:
+        MODULE: ":saas-billing-system:billing-orchestrator"
+    image: saas-billing/billing-orchestrator:local
+    container_name: saas-billing-billing-orchestrator
+    restart: on-failure
+    depends_on:
+      - orchestrator-postgres
+      - kafka-init-topics
+      - schema-registry
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+  payment-service:
+    build:
+      context: ..
+      dockerfile: saas-billing-system/deploy/services/Dockerfile
+      args:
+        MODULE: ":saas-billing-system:payment-service"
+    image: saas-billing/payment-service:local
+    container_name: saas-billing-payment-service
+    restart: on-failure
+    depends_on:
+      - payment-postgres
+      - kafka-init-topics
+      - schema-registry
+      - wiremock
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
 
   kafka-connect:
     build:

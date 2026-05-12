@@ -1,10 +1,13 @@
+server:
+  port: ${SERVER.PORT}
+
 spring:
   application:
-    name: billing-service
+    name: ${SPRING.APPLICATION.NAME}
   datasource:
-    url: jdbc:postgresql://localhost:5433/billing_service_db
-    username: billing_service_user
-    password: billing_service_password
+    url: ${SPRING.DATASOURCE.URL}
+    username: ${SPRING.DATASOURCE.USERNAME}
+    password: ${SPRING.DATASOURCE.PASSWORD}
   jpa:
     hibernate:
       ddl-auto: none
@@ -12,7 +15,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: ${SPRING.KAFKA.BOOTSTRAP_SERVERS}
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
@@ -22,17 +25,14 @@ spring:
       max-poll-records: 10
       isolation-level: read_committed
     properties:
-      schema.registry.url: http://localhost:8081
+      schema.registry.url: ${SPRING.KAFKA.PROPERTIES.SCHEMA.REGISTRY.URL}
 
 billing:
   kafka:
     topics:
       commands:
-        name: billing.commands
+        name: ${BILLING.KAFKA.TOPICS.COMMANDS.NAME}
       events:
-        name: billing.events
+        name: ${BILLING.KAFKA.TOPICS.EVENTS.NAME}
       payment-events:
-        name: payment.events
-
-server:
-  port: 8084
+        name: ${BILLING.KAFKA.TOPICS.PAYMENT_EVENTS.NAME}
