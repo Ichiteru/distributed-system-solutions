@@ -1,0 +1,22 @@
+SERVER:
+  PORT: 8085
+
+SPRING:
+  APPLICATION:
+    NAME: billing-orchestrator
+  DATASOURCE:
+    URL: jdbc:postgresql://orchestrator-postgres:5432/orchestrator_service_db
+    USERNAME: orchestrator_service_user
+    PASSWORD: orchestrator_service_password
+  KAFKA:
+    BOOTSTRAP_SERVERS: kafka:9092
+    PROPERTIES:
+      SCHEMA:
+        REGISTRY:
+          URL: http://schema-registry:8081
+
+ORCHESTRATOR:
+  KAFKA:
+    TOPICS:
+      SUBSCRIPTION_EVENTS: subscription.events
+      BILLING_EVENTS: billing.events

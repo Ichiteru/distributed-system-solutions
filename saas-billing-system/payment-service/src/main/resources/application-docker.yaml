@@ -1,0 +1,26 @@
+SERVER:
+  PORT: 8086
+
+SPRING:
+  APPLICATION:
+    NAME: payment-service
+  DATASOURCE:
+    URL: jdbc:postgresql://payment-postgres:5432/payment_service_db
+    USERNAME: payment_service_user
+    PASSWORD: payment_service_password
+  KAFKA:
+    BOOTSTRAP_SERVERS: kafka:9092
+    PROPERTIES:
+      SCHEMA:
+        REGISTRY:
+          URL: http://schema-registry:8081
+
+PAYMENT:
+  KAFKA:
+    TOPICS:
+      COMMANDS:
+        NAME: payment.commands
+      EVENTS:
+        NAME: payment.events
+  PROVIDER:
+    BASE_URL: http://wiremock:8080

@@ -1,0 +1,26 @@
+SERVER:
+  PORT: 8084
+
+SPRING:
+  APPLICATION:
+    NAME: billing-service
+  DATASOURCE:
+    URL: jdbc:postgresql://localhost:5433/billing_service_db
+    USERNAME: billing_service_user
+    PASSWORD: billing_service_password
+  KAFKA:
+    BOOTSTRAP_SERVERS: localhost:29092
+    PROPERTIES:
+      SCHEMA:
+        REGISTRY:
+          URL: http://localhost:8081
+
+BILLING:
+  KAFKA:
+    TOPICS:
+      COMMANDS:
+        NAME: billing.commands
+      EVENTS:
+        NAME: billing.events
+      PAYMENT_EVENTS:
+        NAME: payment.events

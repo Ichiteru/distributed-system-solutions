@@ -1,0 +1,24 @@
+SERVER:
+  PORT: 8082
+
+SPRING:
+  APPLICATION:
+    NAME: subscription-service
+  DATASOURCE:
+    URL: jdbc:postgresql://localhost:5432/subscription_service_db
+    USERNAME: subscription_service_user
+    PASSWORD: subscription_service_password
+  KAFKA:
+    BOOTSTRAP_SERVERS: localhost:29092
+    PROPERTIES:
+      SCHEMA:
+        REGISTRY:
+          URL: http://localhost:8081
+
+SUBSCRIPTION:
+  KAFKA:
+    TOPICS:
+      COMMANDS:
+        NAME: subscription.commands
+      EVENTS:
+        NAME: subscription.events
