@@ -49,4 +49,13 @@ class PaymentAttemptEntity(
 
   @Column(name = "submitted_at")
   var submittedAt: Instant?,
+
+  @Column(name = "completed_at")
+  var completedAt: Instant?,
+
+  @Column(name = "failure_code")
+  var failureCode: String?,
+
+  @Column(name = "failure_message")
+  var failureMessage: String?,
 )

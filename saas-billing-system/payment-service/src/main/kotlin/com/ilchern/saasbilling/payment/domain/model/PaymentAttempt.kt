@@ -1,5 +1,8 @@
 package com.ilchern.saasbilling.payment.domain.model
 
+import com.ilchern.saasbilling.payment.domain.event.PaymentDomainEvent
+import com.ilchern.saasbilling.payment.domain.event.PaymentFailedEvent
+import com.ilchern.saasbilling.payment.domain.event.PaymentSucceededEvent
 import java.time.Instant
 import java.util.UUID
 
@@ -44,15 +47,27 @@ class PaymentAttempt private constructor(
   private var providerStatus: String?,
   val createdAt: Instant,
   private var submittedAt: Instant?,
+  private var completedAt: Instant?,
+  private var failureCode: String?,
+  private var failureMessage: String?,
+  private val domainEvents: MutableList<PaymentDomainEvent>,
 ) {
 
   fun status(): PaymentAttemptStatus = status
+  fun pullDomainEvents(): List<PaymentDomainEvent> = domainEvents.toList()
   fun providerPaymentReference(): ProviderPaymentReference? = providerPaymentReference
   fun providerStatus(): String? = providerStatus
   fun submittedAt(): Instant? = submittedAt
+  fun completedAt(): Instant? = completedAt
+  fun failureCode(): String? = failureCode
+  fun failureMessage(): String? = failureMessage
   fun isCreated(): Boolean = status == PaymentAttemptStatus.CREATED
   fun canStartNextAttempt(): Boolean =
     status == PaymentAttemptStatus.FAILED || status == PaymentAttemptStatus.TIMED_OUT
+  fun isTerminal(): Boolean =
+    status == PaymentAttemptStatus.SUCCEEDED ||
+      status == PaymentAttemptStatus.FAILED ||
+      status == PaymentAttemptStatus.TIMED_OUT
 
   fun markSubmitted(
     providerPaymentReference: ProviderPaymentReference,
@@ -64,6 +79,60 @@ class PaymentAttempt private constructor(
     this.providerPaymentReference = providerPaymentReference
     this.providerStatus = providerStatus
     this.submittedAt = submittedAt
+  }
+
+  fun markSucceeded(
+    providerStatus: String,
+    completedAt: Instant,
+  ) {
+    check(!isTerminal()) { "Payment attempt already has terminal outcome" }
+    check(status == PaymentAttemptStatus.SUBMITTED) { "Only submitted payment attempt can succeed" }
+    this.status = PaymentAttemptStatus.SUCCEEDED
+    this.providerStatus = providerStatus
+    this.completedAt = completedAt
+    this.failureCode = null
+    this.failureMessage = null
+    this.domainEvents.add(
+      PaymentSucceededEvent(
+        paymentAttemptId = id,
+        invoiceId = invoiceId,
+        subscriptionId = subscriptionId,
+        organizationId = organizationId,
+        amount = amount,
+        providerPaymentReference = requireNotNull(providerPaymentReference),
+        attemptNumber = attemptNumber,
+        occurredAt = completedAt,
+      ),
+    )
+  }
+
+  fun markFailed(
+    providerStatus: String,
+    failureCode: String?,
+    failureMessage: String?,
+    completedAt: Instant,
+  ) {
+    check(!isTerminal()) { "Payment attempt already has terminal outcome" }
+    check(status == PaymentAttemptStatus.SUBMITTED) { "Only submitted payment attempt can fail" }
+    this.status = PaymentAttemptStatus.FAILED
+    this.providerStatus = providerStatus
+    this.completedAt = completedAt
+    this.failureCode = failureCode
+    this.failureMessage = failureMessage
+    this.domainEvents.add(
+      PaymentFailedEvent(
+        paymentAttemptId = id,
+        invoiceId = invoiceId,
+        subscriptionId = subscriptionId,
+        organizationId = organizationId,
+        amount = amount,
+        providerPaymentReference = requireNotNull(providerPaymentReference),
+        attemptNumber = attemptNumber,
+        occurredAt = completedAt,
+        failureCode = failureCode,
+        failureMessage = failureMessage,
+      ),
+    )
   }
 
   companion object {
@@ -93,6 +162,10 @@ class PaymentAttempt private constructor(
         providerStatus = null,
         createdAt = createdAt,
         submittedAt = null,
+        completedAt = null,
+        failureCode = null,
+        failureMessage = null,
+        domainEvents = mutableListOf(),
       )
     }
 
@@ -109,6 +182,9 @@ class PaymentAttempt private constructor(
       providerStatus: String?,
       createdAt: Instant,
       submittedAt: Instant?,
+      completedAt: Instant?,
+      failureCode: String?,
+      failureMessage: String?,
     ): PaymentAttempt =
       PaymentAttempt(
         id = id,
@@ -123,6 +199,10 @@ class PaymentAttempt private constructor(
         providerStatus = providerStatus,
         createdAt = createdAt,
         submittedAt = submittedAt,
+        completedAt = completedAt,
+        failureCode = failureCode,
+        failureMessage = failureMessage,
+        domainEvents = mutableListOf(),
       )
   }
 }

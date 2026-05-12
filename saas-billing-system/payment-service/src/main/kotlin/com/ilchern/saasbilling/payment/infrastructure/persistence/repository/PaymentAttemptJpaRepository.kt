@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface PaymentAttemptJpaRepository : JpaRepository<PaymentAttemptEntity, UUID> {
   fun findFirstByInvoiceIdOrderByAttemptNumberDesc(invoiceId: UUID): PaymentAttemptEntity?
+
+  fun findByProviderPaymentId(providerPaymentId: String): PaymentAttemptEntity?
 }

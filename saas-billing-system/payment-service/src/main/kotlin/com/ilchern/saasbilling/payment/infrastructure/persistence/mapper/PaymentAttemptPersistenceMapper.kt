@@ -32,6 +32,9 @@ class PaymentAttemptPersistenceMapper {
       providerStatus = entity.providerStatus,
       createdAt = entity.createdAt,
       submittedAt = entity.submittedAt,
+      completedAt = entity.completedAt,
+      failureCode = entity.failureCode,
+      failureMessage = entity.failureMessage,
     )
 
   fun newEntity(source: PaymentAttempt): PaymentAttemptEntity =
@@ -49,6 +52,9 @@ class PaymentAttemptPersistenceMapper {
       providerStatus = source.providerStatus(),
       createdAt = source.createdAt,
       submittedAt = source.submittedAt(),
+      completedAt = source.completedAt(),
+      failureCode = source.failureCode(),
+      failureMessage = source.failureMessage(),
     )
 
   fun copyToEntity(
@@ -67,5 +73,8 @@ class PaymentAttemptPersistenceMapper {
     target.providerStatus = source.providerStatus()
     target.createdAt = source.createdAt
     target.submittedAt = source.submittedAt()
+    target.completedAt = source.completedAt()
+    target.failureCode = source.failureCode()
+    target.failureMessage = source.failureMessage()
   }
 }

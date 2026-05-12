@@ -1,0 +1,30 @@
+{
+  "name": "payment-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "payment-postgres",
+    "database.port": "5432",
+    "database.user": "payment_service_user",
+    "database.password": "payment_service_password",
+    "database.dbname": "payment_service_db",
+    "database.server.name": "payment-service",
+    "topic.prefix": "payment-service",
+    "exactly.once.support": "required",
+    "transaction.boundary": "poll",
+    "plugin.name": "pgoutput",
+    "publication.autocreate.mode": "filtered",
+    "schema.include.list": "public",
+    "table.include.list": "public.outbox_messages",
+    "tombstones.on.delete": "false",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.route.topic.replacement": "payment.events",
+    "transforms.outbox.table.field.event.key": "aggregateid",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.timestamp": "timestamp",
+    "transforms.outbox.table.expand.json.payload": "false",
+    "transforms.outbox.table.fields.additional.placement": "id:envelope:id,type:envelope:type,aggregatetype:envelope:aggregatetype,aggregateid:envelope:aggregateid,timestamp:envelope:timestamp,headers:envelope:headers"
+  }
+}

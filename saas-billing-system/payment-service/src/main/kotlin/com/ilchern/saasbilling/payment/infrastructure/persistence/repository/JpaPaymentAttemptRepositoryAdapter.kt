@@ -2,6 +2,7 @@ package com.ilchern.saasbilling.payment.infrastructure.persistence.repository
 
 import com.ilchern.saasbilling.payment.domain.model.InvoiceId
 import com.ilchern.saasbilling.payment.domain.model.PaymentAttempt
+import com.ilchern.saasbilling.payment.domain.model.ProviderPaymentReference
 import com.ilchern.saasbilling.payment.domain.repository.PaymentAttemptRepository
 import com.ilchern.saasbilling.payment.infrastructure.persistence.mapper.PaymentAttemptPersistenceMapper
 import org.springframework.stereotype.Repository
@@ -25,5 +26,9 @@ class JpaPaymentAttemptRepositoryAdapter(
 
   override fun findLatestByInvoiceId(invoiceId: InvoiceId): PaymentAttempt? =
     paymentAttemptJpaRepository.findFirstByInvoiceIdOrderByAttemptNumberDesc(invoiceId.value)
+      ?.let(paymentAttemptPersistenceMapper::toDomain)
+
+  override fun findByProviderPaymentReference(providerPaymentReference: ProviderPaymentReference): PaymentAttempt? =
+    paymentAttemptJpaRepository.findByProviderPaymentId(providerPaymentReference.value)
       ?.let(paymentAttemptPersistenceMapper::toDomain)
 }

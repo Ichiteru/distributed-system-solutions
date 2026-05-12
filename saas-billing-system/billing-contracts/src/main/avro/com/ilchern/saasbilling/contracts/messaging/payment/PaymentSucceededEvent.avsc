@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "PaymentSucceededEvent",
+  "namespace": "com.ilchern.saasbilling.contracts.messaging.payment",
+  "fields": [
+    {
+      "name": "metadata",
+      "type": "com.ilchern.saasbilling.contracts.messaging.MessageMetadata"
+    },
+    { "name": "paymentAttemptId", "type": "string" },
+    { "name": "invoiceId", "type": "string" },
+    { "name": "subscriptionId", "type": "string" },
+    { "name": "organizationId", "type": "string" },
+    { "name": "amountMinor", "type": "long" },
+    { "name": "currency", "type": "string" },
+    { "name": "providerPaymentId", "type": "string" },
+    { "name": "attemptNumber", "type": "int" },
+    { "name": "occurredAt", "type": "string" }
+  ]
+}

@@ -8,7 +8,20 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": "{ \"providerPaymentId\": \"{{jsonPath request.body '$.invoiceId'}}\", \"status\": \"accepted\" }",
+    "body": "{ \"providerPaymentId\": \"{{request.headers.Idempotency-Key}}\", \"status\": \"accepted\" }",
     "transformers": ["response-template"]
-  }
+  },
+  "serveEventListeners": [
+    {
+      "name": "webhook",
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8086/webhooks/payment-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{ \"providerEventId\": \"evt-{{originalRequest.headers.Idempotency-Key}}-succeeded\", \"providerPaymentId\": \"{{originalRequest.headers.Idempotency-Key}}\", \"type\": \"payment_succeeded\", \"status\": \"succeeded\", \"invoiceId\": \"{{jsonPath originalRequest.body '$.invoiceId'}}\", \"amountMinor\": {{jsonPath originalRequest.body '$.amountMinor'}}, \"currency\": \"{{jsonPath originalRequest.body '$.currency'}}\", \"occurredAt\": \"{{now}}\" }"
+      }
+    }
+  ]
 }
