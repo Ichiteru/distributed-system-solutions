@@ -2,6 +2,7 @@ package com.ilchern.saasbilling.billing.domain.model
 
 import com.ilchern.saasbilling.billing.domain.event.BillingDomainEvent
 import com.ilchern.saasbilling.billing.domain.event.InvoiceCreatedEvent
+import com.ilchern.saasbilling.billing.domain.event.InvoicePaidEvent
 import java.time.Instant
 import java.util.UUID
 
@@ -38,6 +39,28 @@ class Invoice private constructor(
   fun status() = status
   fun lines() = lines.toList()
   fun pullDomainEvents() = domainEvents
+
+  fun markPaid(paidAt: Instant) {
+    if (status == InvoiceStatus.PAID) {
+      return
+    }
+
+    check(status == InvoiceStatus.OPEN || status == InvoiceStatus.PAYMENT_PENDING) {
+      "Only open or payment pending invoice can be marked paid"
+    }
+
+    status = InvoiceStatus.PAID
+    domainEvents.add(
+      InvoicePaidEvent(
+        invoiceId = id,
+        subscriptionId = subscriptionId,
+        organizationId = organizationId,
+        occurredAt = paidAt,
+        amount = amount,
+        paidAt = paidAt,
+      ),
+    )
+  }
 
   companion object {
 

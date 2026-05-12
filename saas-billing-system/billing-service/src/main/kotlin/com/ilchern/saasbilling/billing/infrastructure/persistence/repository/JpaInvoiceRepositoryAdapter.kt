@@ -1,6 +1,7 @@
 package com.ilchern.saasbilling.billing.infrastructure.persistence.repository
 
 import com.ilchern.saasbilling.billing.domain.model.Invoice
+import com.ilchern.saasbilling.billing.domain.model.InvoiceId
 import com.ilchern.saasbilling.billing.domain.model.InvoiceType
 import com.ilchern.saasbilling.billing.domain.model.SubscriptionId
 import com.ilchern.saasbilling.billing.domain.repository.InvoiceRepository
@@ -22,6 +23,10 @@ class JpaInvoiceRepositoryAdapter(
     val savedEntity = invoiceJpaRepository.save(entity)
     return invoicePersistenceMapper.toDomain(savedEntity)
   }
+
+  override fun findById(invoiceId: InvoiceId): Invoice? =
+    invoiceJpaRepository.findDetailedById(invoiceId.value)
+      ?.let(invoicePersistenceMapper::toDomain)
 
   override fun findBySubscriptionPeriod(
     subscriptionId: SubscriptionId,

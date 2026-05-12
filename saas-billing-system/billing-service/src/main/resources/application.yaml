@@ -31,6 +31,8 @@ billing:
         name: billing.commands
       events:
         name: billing.events
+      payment-events:
+        name: payment.events
 
 server:
   port: 8084

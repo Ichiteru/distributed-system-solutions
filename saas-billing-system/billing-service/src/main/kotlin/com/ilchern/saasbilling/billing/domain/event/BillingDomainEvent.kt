@@ -9,6 +9,7 @@ import java.util.UUID
 interface BillingDomainEvent {
 
   val eventId: UUID
+  val type: String
   val invoiceId: InvoiceId
   val subscriptionId: SubscriptionId
   val organizationId: OrganizationId
