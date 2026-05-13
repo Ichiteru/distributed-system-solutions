@@ -34,5 +34,3 @@ billing:
         name: ${BILLING.KAFKA.TOPICS.COMMANDS.NAME}
       events:
         name: ${BILLING.KAFKA.TOPICS.EVENTS.NAME}
-      payment-events:
-        name: ${BILLING.KAFKA.TOPICS.PAYMENT_EVENTS.NAME}

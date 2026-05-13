@@ -22,5 +22,3 @@ BILLING:
         NAME: billing.commands
       EVENTS:
         NAME: billing.events
-      PAYMENT_EVENTS:
-        NAME: payment.events

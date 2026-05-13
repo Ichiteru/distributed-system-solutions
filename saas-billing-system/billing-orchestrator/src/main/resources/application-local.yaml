@@ -20,3 +20,4 @@ ORCHESTRATOR:
     TOPICS:
       SUBSCRIPTION_EVENTS: subscription.events
       BILLING_EVENTS: billing.events
+      PAYMENT_EVENTS: payment.events

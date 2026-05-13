@@ -1,8 +1,12 @@
 package com.ilchern.saasbilling.billing.infrastructure.messaging.kafka
 
 import com.ilchern.saasbilling.billing.application.command.CreateInitialInvoiceCommand
+import com.ilchern.saasbilling.billing.application.command.MarkInvoicePaidCommand
 import com.ilchern.saasbilling.billing.application.handler.CreateInitialInvoiceHandler
+import com.ilchern.saasbilling.billing.application.handler.MarkInvoicePaidHandler
 import com.ilchern.saasbilling.billing.domain.model.BillingPeriod
+import com.ilchern.saasbilling.billing.domain.model.InvoiceId
+import com.ilchern.saasbilling.billing.domain.model.Money
 import com.ilchern.saasbilling.billing.domain.model.OrganizationId
 import com.ilchern.saasbilling.billing.domain.model.PaymentMethodToken
 import com.ilchern.saasbilling.billing.domain.model.SubscriptionId
@@ -21,6 +25,7 @@ class BillingCommandListener(
   private val envelopeReader: OutboxMessageEnvelopeReader,
   private val inboxMessageProcessor: InboxMessageProcessor,
   private val createInitialInvoiceHandler: CreateInitialInvoiceHandler,
+  private val markInvoicePaidHandler: MarkInvoicePaidHandler,
 ) {
 
   @KafkaListener(
@@ -32,6 +37,7 @@ class BillingCommandListener(
     val envelope = envelopeReader.read(record)
     when (envelope.type) {
       CREATE_INITIAL_INVOICE_MESSAGE_TYPE -> handleCreateInitialInvoice(envelope)
+      MARK_INVOICE_PAID_MESSAGE_TYPE -> handleMarkInvoicePaid(envelope)
       else -> error("Unsupported billing command type: ${envelope.type}")
     }
   }
@@ -42,7 +48,7 @@ class BillingCommandListener(
       "aggregateid ${envelope.aggregateId} does not match subscriptionId $subscriptionId"
     }
 
-    process(envelope) {
+    process(envelope, CREATE_INITIAL_INVOICE_CONSUMER) {
       createInitialInvoiceHandler.handle(
         CreateInitialInvoiceCommand(
           subscriptionId = SubscriptionId(subscriptionId),
@@ -60,13 +66,37 @@ class BillingCommandListener(
     }
   }
 
+  private fun handleMarkInvoicePaid(envelope: OutboxMessageEnvelope) {
+    val invoiceId = UUID.fromString(requiredString(envelope.payload, "invoiceId"))
+    require(envelope.aggregateId == invoiceId.toString()) {
+      "aggregateid ${envelope.aggregateId} does not match invoiceId $invoiceId"
+    }
+
+    process(envelope, MARK_INVOICE_PAID_CONSUMER) {
+      markInvoicePaidHandler.handle(
+        MarkInvoicePaidCommand(
+          invoiceId = InvoiceId(invoiceId),
+          amount = Money(
+            amountMinor = requiredLong(envelope.payload, "amountMinor"),
+            currency = requiredString(envelope.payload, "currency"),
+          ),
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
+        ),
+      )
+    }
+  }
+
   private fun process(
     envelope: OutboxMessageEnvelope,
+    consumer: String,
     action: () -> Unit,
   ) {
     inboxMessageProcessor.process(
       message = InboxMessage(
-        consumer = CREATE_INITIAL_INVOICE_CONSUMER,
+        consumer = consumer,
         messageId = envelope.id,
         messageType = envelope.type,
         aggregateId = envelope.aggregateId,
@@ -108,6 +138,17 @@ class BillingCommandListener(
     }
   }
 
+  private fun requiredLong(
+    payload: Map<String, Any>,
+    field: String,
+  ): Long {
+    val value = requireNotNull(payload[field]) { "Missing command payload field $field" }
+    return when (value) {
+      is Number -> value.toLong()
+      else -> value.toString().toLong()
+    }
+  }
+
   private fun scalarString(value: Any): String =
     when (value) {
       is Map<*, *> -> requireNotNull(value["value"]) { "Missing value in command payload scalar wrapper" }.toString()
@@ -120,5 +161,7 @@ class BillingCommandListener(
   companion object {
     private const val CREATE_INITIAL_INVOICE_CONSUMER = "billing.create-initial-invoice"
     private const val CREATE_INITIAL_INVOICE_MESSAGE_TYPE = "CreateInitialInvoice"
+    private const val MARK_INVOICE_PAID_CONSUMER = "billing.mark-invoice-paid"
+    private const val MARK_INVOICE_PAID_MESSAGE_TYPE = "MarkInvoicePaid"
   }
 }

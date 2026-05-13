@@ -15,6 +15,7 @@ class SagaEventListener(
     topics = [
       "\${orchestrator.kafka.topics.subscription-events}",
       "\${orchestrator.kafka.topics.billing-events}",
+      "\${orchestrator.kafka.topics.payment-events}",
     ],
     groupId = "\${spring.application.name}",
     containerFactory = "orchestratorEventKafkaListenerContainerFactory",

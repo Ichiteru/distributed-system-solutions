@@ -30,6 +30,7 @@ orchestrator:
     topics:
       subscription-events: ${ORCHESTRATOR.KAFKA.TOPICS.SUBSCRIPTION_EVENTS}
       billing-events: ${ORCHESTRATOR.KAFKA.TOPICS.BILLING_EVENTS}
+      payment-events: ${ORCHESTRATOR.KAFKA.TOPICS.PAYMENT_EVENTS}
   sagas:
     initial-subscription-billing:
       start-event: SubscriptionCreatedEvent
@@ -52,6 +53,14 @@ orchestrator:
             type: SubmitPayment
             aggregate-id-path: $.payload.invoiceId
         - from: PAYMENT_REQUESTED
+          "on": PaymentSucceededEvent
+          to: INVOICE_PAID_REQUESTED
+          emit:
+            topic: billing.commands
+            type: MarkInvoicePaid
+            aggregate-type: invoice
+            aggregate-id-path: $.payload.invoiceId
+        - from: INVOICE_PAID_REQUESTED
           "on": InvoicePaidEvent
           to: ACTIVATION_REQUESTED
           emit:
