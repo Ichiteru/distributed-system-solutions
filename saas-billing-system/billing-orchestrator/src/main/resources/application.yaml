@@ -60,6 +60,14 @@ orchestrator:
             type: MarkInvoicePaid
             aggregate-type: invoice
             aggregate-id-path: $.payload.invoiceId
+        - from: PAYMENT_REQUESTED
+          "on": PaymentFailedEvent
+          to: INVOICE_PAYMENT_PENDING_REQUESTED
+          emit:
+            topic: billing.commands
+            type: MarkInvoicePaymentPending
+            aggregate-type: invoice
+            aggregate-id-path: $.payload.invoiceId
         - from: INVOICE_PAID_REQUESTED
           "on": InvoicePaidEvent
           to: ACTIVATION_REQUESTED
@@ -68,6 +76,9 @@ orchestrator:
             type: ActivateSubscription
             aggregate-type: subscription
             aggregate-id-path: $.payload.subscriptionId
+        - from: INVOICE_PAYMENT_PENDING_REQUESTED
+          "on": InvoicePaymentPendingEvent
+          to: SUSPEND_SUBSCRIPTION_REQUESTED
         - from: ACTIVATION_REQUESTED
           "on": SubscriptionActivatedEvent
           to: COMPLETED

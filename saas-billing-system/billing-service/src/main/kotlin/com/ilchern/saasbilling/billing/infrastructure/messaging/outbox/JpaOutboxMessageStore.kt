@@ -4,6 +4,7 @@ import com.ilchern.saasbilling.billing.application.port.OutboxMessageStore
 import com.ilchern.saasbilling.billing.domain.event.BillingDomainEvent
 import com.ilchern.saasbilling.billing.domain.event.InvoiceCreatedEvent
 import com.ilchern.saasbilling.billing.domain.event.InvoicePaidEvent
+import com.ilchern.saasbilling.billing.domain.event.InvoicePaymentPendingEvent
 import com.ilchern.saasbilling.messaging.outbox.OutboxMessage
 import com.ilchern.saasbilling.messaging.outbox.TransactionalOutboxMessageStore
 import org.springframework.stereotype.Repository
@@ -52,6 +53,16 @@ class JpaOutboxMessageStore(
         "currency" to event.amount.currency,
         "paidAt" to event.paidAt.toString(),
       )
+      is InvoicePaymentPendingEvent -> buildMap {
+        put("invoiceId", event.invoiceId.value.toString())
+        put("subscriptionId", event.subscriptionId.value.toString())
+        put("organizationId", event.organizationId.value)
+        put("amountMinor", event.amount.amountMinor)
+        put("currency", event.amount.currency)
+        put("paymentPendingAt", event.paymentPendingAt.toString())
+        event.failureCode?.let { put("failureCode", it) }
+        event.failureMessage?.let { put("failureMessage", it) }
+      }
       else -> error("Unsupported billing event type: ${event.javaClass.name}")
     }
 

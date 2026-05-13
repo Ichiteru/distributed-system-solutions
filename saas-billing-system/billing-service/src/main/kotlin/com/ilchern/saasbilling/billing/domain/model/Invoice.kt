@@ -3,6 +3,7 @@ package com.ilchern.saasbilling.billing.domain.model
 import com.ilchern.saasbilling.billing.domain.event.BillingDomainEvent
 import com.ilchern.saasbilling.billing.domain.event.InvoiceCreatedEvent
 import com.ilchern.saasbilling.billing.domain.event.InvoicePaidEvent
+import com.ilchern.saasbilling.billing.domain.event.InvoicePaymentPendingEvent
 import java.time.Instant
 import java.util.UUID
 
@@ -58,6 +59,34 @@ class Invoice private constructor(
         occurredAt = paidAt,
         amount = amount,
         paidAt = paidAt,
+      ),
+    )
+  }
+
+  fun markPaymentPending(
+    paymentPendingAt: Instant,
+    failureCode: String?,
+    failureMessage: String?,
+  ) {
+    if (status == InvoiceStatus.PAYMENT_PENDING) {
+      return
+    }
+
+    check(status == InvoiceStatus.OPEN) {
+      "Only open invoice can be marked payment pending"
+    }
+
+    status = InvoiceStatus.PAYMENT_PENDING
+    domainEvents.add(
+      InvoicePaymentPendingEvent(
+        invoiceId = id,
+        subscriptionId = subscriptionId,
+        organizationId = organizationId,
+        occurredAt = paymentPendingAt,
+        amount = amount,
+        paymentPendingAt = paymentPendingAt,
+        failureCode = failureCode,
+        failureMessage = failureMessage,
       ),
     )
   }

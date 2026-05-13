@@ -2,8 +2,10 @@ package com.ilchern.saasbilling.billing.infrastructure.messaging.kafka
 
 import com.ilchern.saasbilling.billing.application.command.CreateInitialInvoiceCommand
 import com.ilchern.saasbilling.billing.application.command.MarkInvoicePaidCommand
+import com.ilchern.saasbilling.billing.application.command.MarkInvoicePaymentPendingCommand
 import com.ilchern.saasbilling.billing.application.handler.CreateInitialInvoiceHandler
 import com.ilchern.saasbilling.billing.application.handler.MarkInvoicePaidHandler
+import com.ilchern.saasbilling.billing.application.handler.MarkInvoicePaymentPendingHandler
 import com.ilchern.saasbilling.billing.domain.model.BillingPeriod
 import com.ilchern.saasbilling.billing.domain.model.InvoiceId
 import com.ilchern.saasbilling.billing.domain.model.Money
@@ -26,6 +28,7 @@ class BillingCommandListener(
   private val inboxMessageProcessor: InboxMessageProcessor,
   private val createInitialInvoiceHandler: CreateInitialInvoiceHandler,
   private val markInvoicePaidHandler: MarkInvoicePaidHandler,
+  private val markInvoicePaymentPendingHandler: MarkInvoicePaymentPendingHandler,
 ) {
 
   @KafkaListener(
@@ -38,6 +41,7 @@ class BillingCommandListener(
     when (envelope.type) {
       CREATE_INITIAL_INVOICE_MESSAGE_TYPE -> handleCreateInitialInvoice(envelope)
       MARK_INVOICE_PAID_MESSAGE_TYPE -> handleMarkInvoicePaid(envelope)
+      MARK_INVOICE_PAYMENT_PENDING_MESSAGE_TYPE -> handleMarkInvoicePaymentPending(envelope)
       else -> error("Unsupported billing command type: ${envelope.type}")
     }
   }
@@ -80,6 +84,31 @@ class BillingCommandListener(
             amountMinor = requiredLong(envelope.payload, "amountMinor"),
             currency = requiredString(envelope.payload, "currency"),
           ),
+          messageId = envelope.id,
+          correlationId = optionalUuid(envelope.headers["correlationId"]),
+          causationId = optionalUuid(envelope.headers["causationId"]),
+          occurredAt = envelope.timestamp,
+        ),
+      )
+    }
+  }
+
+  private fun handleMarkInvoicePaymentPending(envelope: OutboxMessageEnvelope) {
+    val invoiceId = UUID.fromString(requiredString(envelope.payload, "invoiceId"))
+    require(envelope.aggregateId == invoiceId.toString()) {
+      "aggregateid ${envelope.aggregateId} does not match invoiceId $invoiceId"
+    }
+
+    process(envelope, MARK_INVOICE_PAYMENT_PENDING_CONSUMER) {
+      markInvoicePaymentPendingHandler.handle(
+        MarkInvoicePaymentPendingCommand(
+          invoiceId = InvoiceId(invoiceId),
+          amount = Money(
+            amountMinor = requiredLong(envelope.payload, "amountMinor"),
+            currency = requiredString(envelope.payload, "currency"),
+          ),
+          failureCode = optionalString(envelope.payload["failureCode"]),
+          failureMessage = optionalString(envelope.payload["failureMessage"]),
           messageId = envelope.id,
           correlationId = optionalUuid(envelope.headers["correlationId"]),
           causationId = optionalUuid(envelope.headers["causationId"]),
@@ -155,6 +184,9 @@ class BillingCommandListener(
       else -> value.toString()
     }
 
+  private fun optionalString(value: Any?): String? =
+    value?.let(::scalarString)?.takeIf { it.isNotBlank() }
+
   private fun optionalUuid(value: Any?): UUID? =
     value?.toString()?.takeIf { it.isNotBlank() }?.let(UUID::fromString)
 
@@ -163,5 +195,7 @@ class BillingCommandListener(
     private const val CREATE_INITIAL_INVOICE_MESSAGE_TYPE = "CreateInitialInvoice"
     private const val MARK_INVOICE_PAID_CONSUMER = "billing.mark-invoice-paid"
     private const val MARK_INVOICE_PAID_MESSAGE_TYPE = "MarkInvoicePaid"
+    private const val MARK_INVOICE_PAYMENT_PENDING_CONSUMER = "billing.mark-invoice-payment-pending"
+    private const val MARK_INVOICE_PAYMENT_PENDING_MESSAGE_TYPE = "MarkInvoicePaymentPending"
   }
 }
