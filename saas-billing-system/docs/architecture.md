@@ -61,7 +61,7 @@ WireMock имитирует внешний payment provider и не считае
 - Subscription aggregate и subscription lifecycle.
 - Выбор тарифа, billing period и seats.
 - Pending changes для следующего billing period.
-- Применение saga outcome events: activate, mark past due, suspend, cancel.
+- Применение saga outcome events: activate, cancel.
 
 Хранилище:
 
@@ -89,10 +89,11 @@ WireMock имитирует внешний payment provider и не считае
 Ответственность:
 
 - Payment attempts.
+- Retry policy для payment attempts.
 - Хранение ссылок на payment method tokens.
 - Интеграция с WireMock PSP по HTTP.
 - Прием PSP webhook callbacks.
-- Нормализация PSP outcomes в доменные payment events.
+- Нормализация PSP outcomes в `PaymentSucceeded` или финальный `PaymentFailed`.
 - Защита от повторных webhook/event deliveries.
 
 Хранилище:
@@ -107,14 +108,14 @@ WireMock имитирует внешний payment provider и не считае
 - Saga state machine.
 - Управление initial subscription activation flow.
 - Управление renewal payment flow.
-- Управление payment failed/retry/grace/suspend flow.
+- Реакция на финальный payment failure outcome.
 - Публикация команд сервисам и обработка outcome events.
 - Reconciliation зависших saga states.
 
 Хранилище:
 
 - `orchestrator-db`.
-- Таблицы billing_sagas, saga_steps, retry_schedules, outbox_messages, inbox_messages.
+- Таблицы billing_sagas, saga_steps, outbox_messages, inbox_messages.
 
 Orchestrator не владеет subscription, invoice или payment доменными данными. Он хранит только состояние процесса.
 
@@ -155,9 +156,9 @@ Kafka message types делятся на:
 | `CreateInitialInvoice` | billing-orchestrator | billing-service | Создать initial invoice |
 | `CreateRenewalInvoice` | billing-orchestrator | billing-service | Создать renewal invoice |
 | `SubmitPayment` | billing-orchestrator | payment-service | Создать payment attempt и отправить его PSP |
+| `RetryPayment` | payment-service | payment-service | Выполнить следующую payment attempt по локальной retry policy |
 | `ActivateSubscription` | billing-orchestrator | subscription-service | Активировать подписку после оплаты |
-| `MarkSubscriptionPastDue` | billing-orchestrator | subscription-service | Пометить подписку как past_due |
-| `SuspendSubscription` | billing-orchestrator | subscription-service | Приостановить подписку после exhausted retries |
+| `CancelSubscription` | billing-orchestrator | subscription-service | Отменить pending subscription после финального отказа оплаты |
 | `CancelSubscriptionAtPeriodEnd` | billing-orchestrator | subscription-service | Завершить подписку в конце периода |
 
 Основные events:
@@ -170,9 +171,10 @@ Kafka message types делятся на:
 | `InvoiceCreated` | billing-service | billing-orchestrator | Invoice создан |
 | `InvoicePaymentRequested` | billing-service | billing-orchestrator | Invoice готов к оплате |
 | `PaymentSucceeded` | payment-service | billing-orchestrator, billing-service | Payment attempt успешен |
-| `PaymentFailed` | payment-service | billing-orchestrator, billing-service | Payment attempt неуспешен |
+| `PaymentFailed` | payment-service | billing-orchestrator | Все payment attempts исчерпаны, оплата финально неуспешна |
 | `InvoicePaid` | billing-service | billing-orchestrator | Invoice закрыт как paid |
-| `InvoiceFailed` | billing-service | billing-orchestrator | Invoice не оплачен после failure flow |
+| `SubscriptionActivated` | subscription-service | billing-orchestrator | Pending subscription активирована |
+| `SubscriptionCanceled` | subscription-service | billing-orchestrator | Pending subscription отменена |
 
 ## 7. Reliability Baseline
 
@@ -204,6 +206,7 @@ Inbox обязателен для write consumers во всех сервисах
 
 - Public REST commands принимают `Idempotency-Key`.
 - Business uniqueness защищается unique constraints: invoice per subscription period, payment attempt per invoice attempt number, saga per business operation.
+- Payment attempt numbering и max attempts являются внутренней логикой `payment-service`; внешние сервисы не передают и не интерпретируют `attemptNumber`.
 - PSP webhooks дедуплицируются по provider event id.
 - Kafka consumers не полагаются на exactly-once delivery.
 
@@ -256,7 +259,7 @@ sequenceDiagram
     S->>S: Mark subscription active
 ```
 
-### Payment failure, retry, grace, suspend
+### Payment failure, retry, cancel
 
 ```mermaid
 sequenceDiagram
@@ -265,31 +268,35 @@ sequenceDiagram
     participant K as Kafka
     participant P as payment-service
     participant W as WireMock PSP
-    participant B as billing-service
     participant S as subscription-service
 
     O-->>K: SubmitPayment
     K-->>P: SubmitPayment
+    P->>P: Create payment attempt #1
     P->>W: POST /payments
     W->>P: webhook payment_failed
-    P-->>K: PaymentFailed
-    K-->>O: PaymentFailed
-    K-->>B: PaymentFailed
-    B->>B: Mark invoice failed attempt
-    O->>O: Schedule retry while retry limit not exhausted
-    O-->>K: SubmitPayment retry
-    K-->>P: SubmitPayment retry
+    P->>P: Mark attempt #1 failed
+    P-->>K: RetryPayment
+    K-->>P: RetryPayment
+    P->>P: Create payment attempt #2
     P->>W: POST /payments
     W->>P: webhook payment_failed
+    P->>P: Mark attempt #2 failed
+    P-->>K: RetryPayment
+    K-->>P: RetryPayment
+    P->>P: Create payment attempt #3
+    P->>W: POST /payments
+    W->>P: webhook payment_failed
+    P->>P: Mark attempt #3 failed
+    P->>P: Max attempts exhausted
     P-->>K: PaymentFailed
     K-->>O: PaymentFailed
-    O->>O: Retry exhausted, start grace expiration
-    O-->>K: MarkSubscriptionPastDue
-    K-->>S: MarkSubscriptionPastDue
-    O->>O: Grace period expired
-    O-->>K: SuspendSubscription
-    K-->>S: SuspendSubscription
-    S->>S: Mark subscription suspended
+    O-->>K: CancelSubscription
+    K-->>S: CancelSubscription
+    S->>S: Mark subscription canceled
+    S-->>K: SubscriptionCanceled
+    K-->>O: SubscriptionCanceled
+    O->>O: Complete saga as payment failed
 ```
 
 ## 9. Data and Transaction Boundaries
@@ -348,7 +355,7 @@ Admin/query endpoints могут добавляться внутри каждо�
 - End-to-end scenarios:
   - create subscription -> invoice -> payment success -> active subscription;
   - renewal success;
-  - payment failed -> retry exhausted -> subscription suspended;
+  - payment failed -> payment-service retries exhausted -> pending subscription canceled;
   - schedule plan/seats change -> apply on next period;
   - cancel at period end -> no renewal.
 
