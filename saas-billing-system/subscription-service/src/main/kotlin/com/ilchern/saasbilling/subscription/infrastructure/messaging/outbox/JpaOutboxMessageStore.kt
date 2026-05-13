@@ -8,6 +8,7 @@ import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCancellatio
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionChangeScheduledEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCreatedEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
+import com.ilchern.saasbilling.subscription.domain.event.SubscriptionSuspendedEvent
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -53,6 +54,11 @@ class JpaOutboxMessageStore(
         "organizationId" to event.organizationId.value,
         "newPlan" to event.newPlan.name,
         "newSeats" to event.newSeats,
+      )
+      is SubscriptionSuspendedEvent -> mapOf(
+        "subscriptionId" to event.subscriptionId.value.toString(),
+        "organizationId" to event.organizationId.value,
+        "suspendedAt" to event.suspendedAt.toString(),
       )
       else -> error("Unsupported subscription event type: ${event.javaClass.name}")
     }

@@ -3,20 +3,16 @@ package com.ilchern.saasbilling.subscription.infrastructure.messaging.kafka
 import com.ilchern.saasbilling.messaging.inbox.InboxMessage
 import com.ilchern.saasbilling.messaging.inbox.InboxMessageProcessor
 import com.ilchern.saasbilling.subscription.application.command.ActivateSubscriptionCommand
-import com.ilchern.saasbilling.subscription.application.command.CompleteSubscriptionCancellationCommand
-import com.ilchern.saasbilling.subscription.application.command.MarkSubscriptionPastDueCommand
 import com.ilchern.saasbilling.subscription.application.command.SuspendSubscriptionCommand
 import com.ilchern.saasbilling.subscription.application.handler.ActivateSubscriptionHandler
-import com.ilchern.saasbilling.subscription.application.handler.CompleteSubscriptionCancellationHandler
-import com.ilchern.saasbilling.subscription.application.handler.MarkSubscriptionPastDueHandler
 import com.ilchern.saasbilling.subscription.application.handler.SuspendSubscriptionHandler
 import com.ilchern.saasbilling.subscription.domain.model.OrganizationId
 import com.ilchern.saasbilling.subscription.domain.model.SubscriptionId
-import java.time.Clock
-import java.util.UUID
 import org.apache.avro.generic.GenericRecord
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import java.time.Clock
+import java.util.*
 
 @Component
 class SubscriptionCommandListener(
@@ -24,9 +20,7 @@ class SubscriptionCommandListener(
   private val envelopeReader: OutboxMessageEnvelopeReader,
   private val inboxMessageProcessor: InboxMessageProcessor,
   private val activateSubscriptionHandler: ActivateSubscriptionHandler,
-  private val markSubscriptionPastDueHandler: MarkSubscriptionPastDueHandler,
   private val suspendSubscriptionHandler: SuspendSubscriptionHandler,
-  private val completeSubscriptionCancellationHandler: CompleteSubscriptionCancellationHandler,
 ) {
 
   @KafkaListener(
@@ -38,9 +32,7 @@ class SubscriptionCommandListener(
     val envelope = envelopeReader.read(record)
     when (envelope.type) {
       ACTIVATE_SUBSCRIPTION_MESSAGE_TYPE -> handleActivateSubscription(envelope)
-      MARK_SUBSCRIPTION_PAST_DUE_MESSAGE_TYPE -> handleMarkSubscriptionPastDue(envelope)
       SUSPEND_SUBSCRIPTION_MESSAGE_TYPE -> handleSuspendSubscription(envelope)
-      CANCEL_SUBSCRIPTION_AT_PERIOD_END_MESSAGE_TYPE -> handleCancelSubscriptionAtPeriodEnd(envelope)
       else -> error("Unsupported subscription command type: ${envelope.type}")
     }
   }
@@ -66,27 +58,6 @@ class SubscriptionCommandListener(
     }
   }
 
-  private fun handleMarkSubscriptionPastDue(envelope: OutboxMessageEnvelope) {
-    val context = parseContext(
-      envelope = envelope,
-      consumer = MARK_SUBSCRIPTION_PAST_DUE_CONSUMER,
-      messageType = MARK_SUBSCRIPTION_PAST_DUE_MESSAGE_TYPE,
-    )
-
-    process(context, envelope) {
-      markSubscriptionPastDueHandler.handle(
-        MarkSubscriptionPastDueCommand(
-          subscriptionId = SubscriptionId(context.subscriptionId),
-          organizationId = OrganizationId(context.organizationId),
-          messageId = envelope.id,
-          correlationId = optionalUuid(envelope.headers["correlationId"]),
-          causationId = optionalUuid(envelope.headers["causationId"]),
-          occurredAt = envelope.timestamp,
-        ),
-      )
-    }
-  }
-
   private fun handleSuspendSubscription(envelope: OutboxMessageEnvelope) {
     val context = parseContext(
       envelope = envelope,
@@ -97,27 +68,6 @@ class SubscriptionCommandListener(
     process(context, envelope) {
       suspendSubscriptionHandler.handle(
         SuspendSubscriptionCommand(
-          subscriptionId = SubscriptionId(context.subscriptionId),
-          organizationId = OrganizationId(context.organizationId),
-          messageId = envelope.id,
-          correlationId = optionalUuid(envelope.headers["correlationId"]),
-          causationId = optionalUuid(envelope.headers["causationId"]),
-          occurredAt = envelope.timestamp,
-        ),
-      )
-    }
-  }
-
-  private fun handleCancelSubscriptionAtPeriodEnd(envelope: OutboxMessageEnvelope) {
-    val context = parseContext(
-      envelope = envelope,
-      consumer = CANCEL_SUBSCRIPTION_AT_PERIOD_END_CONSUMER,
-      messageType = CANCEL_SUBSCRIPTION_AT_PERIOD_END_MESSAGE_TYPE,
-    )
-
-    process(context, envelope) {
-      completeSubscriptionCancellationHandler.handle(
-        CompleteSubscriptionCancellationCommand(
           subscriptionId = SubscriptionId(context.subscriptionId),
           organizationId = OrganizationId(context.organizationId),
           messageId = envelope.id,

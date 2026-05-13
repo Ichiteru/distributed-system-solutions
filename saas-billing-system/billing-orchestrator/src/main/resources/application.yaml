@@ -79,6 +79,14 @@ orchestrator:
         - from: INVOICE_PAYMENT_PENDING_REQUESTED
           "on": InvoicePaymentPendingEvent
           to: SUSPEND_SUBSCRIPTION_REQUESTED
+          emit:
+            topic: subscription.commands
+            type: SuspendSubscription
+            aggregate-type: subscription
+            aggregate-id-path: $.payload.subscriptionId
         - from: ACTIVATION_REQUESTED
           "on": SubscriptionActivatedEvent
+          to: COMPLETED
+        - from: SUSPEND_SUBSCRIPTION_REQUESTED
+          "on": SubscriptionSuspendedEvent
           to: COMPLETED

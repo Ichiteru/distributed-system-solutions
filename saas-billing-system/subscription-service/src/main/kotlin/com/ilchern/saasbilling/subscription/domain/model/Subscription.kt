@@ -5,6 +5,7 @@ import com.ilchern.saasbilling.subscription.domain.event.SubscriptionActivatedEv
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionChangeScheduledEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionCreatedEvent
 import com.ilchern.saasbilling.subscription.domain.event.SubscriptionDomainEvent
+import com.ilchern.saasbilling.subscription.domain.event.SubscriptionSuspendedEvent
 import java.time.Instant
 import java.util.UUID
 
@@ -88,14 +89,20 @@ class Subscription private constructor(
       return this
     }
 
-    require(status == SubscriptionStatus.PAST_DUE) {
-      "Only past due subscription can be suspended"
+    require(status == SubscriptionStatus.PENDING || status == SubscriptionStatus.PAST_DUE) {
+      "Only pending or past due subscription can be suspended"
     }
 
     status = SubscriptionStatus.SUSPENDED
     historyEntries += SubscriptionHistoryEntry(
       action = "SUBSCRIPTION_SUSPENDED",
       occurredAt = occurredAt,
+    )
+    domainEvents += SubscriptionSuspendedEvent(
+      subscriptionId = id,
+      organizationId = organizationId,
+      occurredAt = occurredAt,
+      suspendedAt = occurredAt,
     )
 
     return this

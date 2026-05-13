@@ -37,14 +37,12 @@ class SubscriptionController(
   fun create(
     @RequestHeader("X-Organization-Id") organizationId: String,
     @RequestHeader("Idempotency-Key") idempotencyKey: String,
-//    @RequestHeader("X-User-Id") userId: String,
     @Valid @RequestBody request: CreateSubscriptionRequest,
   ): ResponseEntity<SubscriptionResponse> {
     val subscription = createSubscriptionHandler.handle(
       CreateSubscriptionCommand(
         organizationId = OrganizationId(organizationId),
         idempotencyKey = idempotencyKey,
-//        requestedBy = UserId(userId),
         plan = requireNotNull(request.plan),
         billingPeriod = requireNotNull(request.billingPeriod),
         seats = request.seats,
