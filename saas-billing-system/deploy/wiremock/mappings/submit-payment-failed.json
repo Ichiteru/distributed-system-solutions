@@ -1,0 +1,33 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/payments",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.paymentMethodToken == 'pm_fail')]"
+      }
+    ]
+  },
+  "priority": 1,
+  "response": {
+    "status": 202,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{ \"providerPaymentId\": \"{{request.headers.Idempotency-Key}}\", \"status\": \"accepted\" }",
+    "transformers": ["response-template"]
+  },
+  "serveEventListeners": [
+    {
+      "name": "webhook",
+      "parameters": {
+        "method": "POST",
+        "url": "http://payment-service:8086/webhooks/payment-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{ \"providerEventId\": \"evt-{{originalRequest.headers.Idempotency-Key}}-failed\", \"providerPaymentId\": \"{{originalRequest.headers.Idempotency-Key}}\", \"type\": \"payment_failed\", \"status\": \"failed\", \"invoiceId\": \"{{jsonPath originalRequest.body '$.invoiceId'}}\", \"amountMinor\": {{jsonPath originalRequest.body '$.amountMinor'}}, \"currency\": \"{{jsonPath originalRequest.body '$.currency'}}\", \"occurredAt\": \"{{now}}\", \"failureCode\": \"card_declined\", \"failureMessage\": \"Card was declined\" }"
+      }
+    }
+  ]
+}

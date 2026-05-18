@@ -3,6 +3,7 @@
     "method": "POST",
     "urlPath": "/payments"
   },
+  "priority": 10,
   "response": {
     "status": 202,
     "headers": {
