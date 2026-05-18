@@ -32,8 +32,10 @@ class SubscriptionInfrastructureConfig {
   @Bean
   fun subscriptionCommandKafkaListenerContainerFactory(
     subscriptionCommandConsumerFactory: ConsumerFactory<String, GenericRecord>,
+    kafkaProperties: KafkaProperties,
   ): ConcurrentKafkaListenerContainerFactory<String, GenericRecord> =
     ConcurrentKafkaListenerContainerFactory<String, GenericRecord>().apply {
       consumerFactory = subscriptionCommandConsumerFactory
+      setAutoStartup(kafkaProperties.listener.isAutoStartup)
     }
 }

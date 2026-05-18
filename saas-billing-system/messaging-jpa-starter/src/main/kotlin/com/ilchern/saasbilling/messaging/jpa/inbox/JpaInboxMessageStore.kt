@@ -9,9 +9,13 @@ class JpaInboxMessageStore(
   private val inboxMessageJpaRepository: InboxMessageJpaRepository,
 ) : InboxMessageStore {
 
-  override fun saveIfAbsent(message: InboxMessage): Boolean =
-    try {
-      inboxMessageJpaRepository.save(
+  override fun saveIfAbsent(message: InboxMessage): Boolean {
+    return try {
+      if (inboxMessageJpaRepository.existsByConsumerAndMessageId(message.consumer, message.messageId)) {
+        return false
+      }
+
+      inboxMessageJpaRepository.saveAndFlush(
         InboxMessageEntity(
           id = UUID.randomUUID(),
           consumer = message.consumer,
@@ -29,4 +33,5 @@ class JpaInboxMessageStore(
     } catch (_: DataIntegrityViolationException) {
       false
     }
+  }
 }

@@ -118,7 +118,7 @@ Main invariants:
 - `ACTIVE` is reached only through an orchestrator outcome after successful initial payment.
 - Plan/seats changes are scheduled and do not modify the current paid period immediately.
 - Cancellation is at period end and does not delete subscription history.
-- `SUSPENDED` can be reached only from `PAST_DUE`.
+- `SUSPENDED` can be reached from `PENDING` for failed initial billing and from `PAST_DUE` for renewal/payment collection flows.
 - Kafka write consumers use `inbox_messages` for deduplication and transactional processing.
 
 ### PendingSubscriptionChange
@@ -172,3 +172,25 @@ Useful commands:
 ./gradlew :saas-billing-system:subscription-service:compileKotlin
 ./gradlew :saas-billing-system:subscription-service:bootRun
 ```
+
+## Integration Test Plan
+
+### REST + DB + Outbox
+
+- `POST /subscriptions` creates a `PENDING` subscription.
+- Subscription fields are persisted: plan, billing period, seats, organization id and payment method token.
+- `SubscriptionCreatedEvent` is written to `outbox_messages`.
+- Repeating `POST /subscriptions` with the same `Idempotency-Key` returns the same subscription and does not create a second subscription or duplicate outbox event.
+
+### Application Handler + DB + Outbox
+
+- `ActivateSubscriptionHandler` transitions `PENDING -> ACTIVE` and writes `SubscriptionActivatedEvent`.
+- Duplicate activation for an already `ACTIVE` subscription is idempotent and does not write a second event.
+- `SuspendSubscriptionHandler` transitions `PENDING -> SUSPENDED` and writes `SubscriptionSuspendedEvent`.
+- Duplicate suspension for an already `SUSPENDED` subscription is idempotent and does not write a second event.
+
+### Kafka Listener + Inbox + Handler
+
+- `ActivateSubscription` envelope activates the subscription through `SubscriptionCommandListener`.
+- `SuspendSubscription` envelope suspends the subscription through `SubscriptionCommandListener`.
+- Duplicate message id for the same consumer is ignored by inbox processing and does not execute the handler side effect twice.
