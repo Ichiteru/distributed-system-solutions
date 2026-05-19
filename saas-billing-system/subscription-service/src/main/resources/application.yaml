@@ -27,8 +27,14 @@ spring:
 
 subscription:
   kafka:
+    dlt:
+      retry:
+        backoff-ms: ${SUBSCRIPTION.KAFKA.DLT.RETRY.BACKOFF_MS}
+        max-attempts: ${SUBSCRIPTION.KAFKA.DLT.RETRY.MAX_ATTEMPTS}
     topics:
       commands:
         name: ${SUBSCRIPTION.KAFKA.TOPICS.COMMANDS.NAME}
+      commands-dlt:
+        name: ${SUBSCRIPTION.KAFKA.TOPICS.COMMANDS_DLT.NAME}
       events:
         name: ${SUBSCRIPTION.KAFKA.TOPICS.EVENTS.NAME}

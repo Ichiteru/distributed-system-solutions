@@ -17,8 +17,14 @@ SPRING:
 
 SUBSCRIPTION:
   KAFKA:
+    DLT:
+      RETRY:
+        BACKOFF_MS: 1000
+        MAX_ATTEMPTS: 3
     TOPICS:
       COMMANDS:
         NAME: subscription.commands
+      COMMANDS_DLT:
+        NAME: subscription.commands.dlt
       EVENTS:
         NAME: subscription.events
