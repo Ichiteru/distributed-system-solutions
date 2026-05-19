@@ -29,8 +29,14 @@ spring:
 
 billing:
   kafka:
+    dlt:
+      retry:
+        backoff-ms: ${BILLING.KAFKA.DLT.RETRY.BACKOFF_MS}
+        max-attempts: ${BILLING.KAFKA.DLT.RETRY.MAX_ATTEMPTS}
     topics:
       commands:
         name: ${BILLING.KAFKA.TOPICS.COMMANDS.NAME}
+      commands-dlt:
+        name: ${BILLING.KAFKA.TOPICS.COMMANDS_DLT.NAME}
       events:
         name: ${BILLING.KAFKA.TOPICS.EVENTS.NAME}

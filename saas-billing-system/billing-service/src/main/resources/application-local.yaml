@@ -17,8 +17,14 @@ SPRING:
 
 BILLING:
   KAFKA:
+    DLT:
+      RETRY:
+        BACKOFF_MS: 1000
+        MAX_ATTEMPTS: 3
     TOPICS:
       COMMANDS:
         NAME: billing.commands
+      COMMANDS_DLT:
+        NAME: billing.commands.dlt
       EVENTS:
         NAME: billing.events

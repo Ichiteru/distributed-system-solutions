@@ -17,9 +17,15 @@ SPRING:
 
 PAYMENT:
   KAFKA:
+    DLT:
+      RETRY:
+        BACKOFF_MS: 1000
+        MAX_ATTEMPTS: 3
     TOPICS:
       COMMANDS:
         NAME: payment.commands
+      COMMANDS_DLT:
+        NAME: payment.commands.dlt
       EVENTS:
         NAME: payment.events
   PROVIDER:

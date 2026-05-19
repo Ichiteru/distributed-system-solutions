@@ -43,6 +43,17 @@ topics:
       min.insync.replicas: 1
       max.message.bytes: 1048576
       compression.type: producer
+  - name: billing.commands.dlt
+    role: dlt
+    owner: billing-service
+    partitions: 3
+    replicationFactor: 1
+    configs:
+      cleanup.policy: delete
+      retention.ms: 2592000000
+      min.insync.replicas: 1
+      max.message.bytes: 1048576
+      compression.type: producer
   - name: billing.events
     role: event
     owner: billing-service
@@ -62,6 +73,17 @@ topics:
     configs:
       cleanup.policy: delete
       retention.ms: 604800000
+      min.insync.replicas: 1
+      max.message.bytes: 1048576
+      compression.type: producer
+  - name: payment.commands.dlt
+    role: dlt
+    owner: payment-service
+    partitions: 3
+    replicationFactor: 1
+    configs:
+      cleanup.policy: delete
+      retention.ms: 2592000000
       min.insync.replicas: 1
       max.message.bytes: 1048576
       compression.type: producer

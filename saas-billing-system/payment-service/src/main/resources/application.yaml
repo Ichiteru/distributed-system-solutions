@@ -29,9 +29,15 @@ spring:
 
 payment:
   kafka:
+    dlt:
+      retry:
+        backoff-ms: ${PAYMENT.KAFKA.DLT.RETRY.BACKOFF_MS}
+        max-attempts: ${PAYMENT.KAFKA.DLT.RETRY.MAX_ATTEMPTS}
     topics:
       commands:
         name: ${PAYMENT.KAFKA.TOPICS.COMMANDS.NAME}
+      commands-dlt:
+        name: ${PAYMENT.KAFKA.TOPICS.COMMANDS_DLT.NAME}
       events:
         name: ${PAYMENT.KAFKA.TOPICS.EVENTS.NAME}
   provider:
