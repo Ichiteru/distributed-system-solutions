@@ -32,8 +32,10 @@ class BillingInfrastructureConfig {
   @Bean
   fun billingCommandKafkaListenerContainerFactory(
     billingCommandConsumerFactory: ConsumerFactory<String, GenericRecord>,
+    kafkaProperties: KafkaProperties,
   ): ConcurrentKafkaListenerContainerFactory<String, GenericRecord> =
     ConcurrentKafkaListenerContainerFactory<String, GenericRecord>().apply {
       consumerFactory = billingCommandConsumerFactory
+      setAutoStartup(kafkaProperties.listener.isAutoStartup)
     }
 }

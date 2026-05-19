@@ -32,8 +32,10 @@ class PaymentInfrastructureConfig {
   @Bean
   fun paymentCommandKafkaListenerContainerFactory(
     paymentCommandConsumerFactory: ConsumerFactory<String, GenericRecord>,
+    kafkaProperties: KafkaProperties,
   ): ConcurrentKafkaListenerContainerFactory<String, GenericRecord> =
     ConcurrentKafkaListenerContainerFactory<String, GenericRecord>().apply {
       consumerFactory = paymentCommandConsumerFactory
+      setAutoStartup(kafkaProperties.listener.isAutoStartup)
     }
 }
