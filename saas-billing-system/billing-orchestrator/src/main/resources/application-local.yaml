@@ -17,7 +17,14 @@ SPRING:
 
 ORCHESTRATOR:
   KAFKA:
+    DLT:
+      RETRY:
+        BACKOFF_MS: 1000
+        MAX_ATTEMPTS: 3
     TOPICS:
       SUBSCRIPTION_EVENTS: subscription.events
+      SUBSCRIPTION_EVENTS_DLT: subscription.events.dlt
       BILLING_EVENTS: billing.events
+      BILLING_EVENTS_DLT: billing.events.dlt
       PAYMENT_EVENTS: payment.events
+      PAYMENT_EVENTS_DLT: payment.events.dlt

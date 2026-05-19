@@ -27,10 +27,17 @@ spring:
 
 orchestrator:
   kafka:
+    dlt:
+      retry:
+        backoff-ms: ${ORCHESTRATOR.KAFKA.DLT.RETRY.BACKOFF_MS}
+        max-attempts: ${ORCHESTRATOR.KAFKA.DLT.RETRY.MAX_ATTEMPTS}
     topics:
       subscription-events: ${ORCHESTRATOR.KAFKA.TOPICS.SUBSCRIPTION_EVENTS}
+      subscription-events-dlt: ${ORCHESTRATOR.KAFKA.TOPICS.SUBSCRIPTION_EVENTS_DLT}
       billing-events: ${ORCHESTRATOR.KAFKA.TOPICS.BILLING_EVENTS}
+      billing-events-dlt: ${ORCHESTRATOR.KAFKA.TOPICS.BILLING_EVENTS_DLT}
       payment-events: ${ORCHESTRATOR.KAFKA.TOPICS.PAYMENT_EVENTS}
+      payment-events-dlt: ${ORCHESTRATOR.KAFKA.TOPICS.PAYMENT_EVENTS_DLT}
   sagas:
     initial-subscription-billing:
       start-event: SubscriptionCreatedEvent
