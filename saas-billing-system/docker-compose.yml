@@ -85,6 +85,7 @@ services:
     container_name: saas-billing-kafka
     depends_on:
       - zookeeper
+    restart: on-failure
     ports:
       - "9092:9092"
       - "29092:29092"
