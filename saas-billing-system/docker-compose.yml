@@ -16,6 +16,12 @@ services:
       POSTGRES_DB: subscription_service_db
       POSTGRES_USER: subscription_service_user
       POSTGRES_PASSWORD: subscription_service_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subscription_service_user -d subscription_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   billing-postgres:
     image: postgres:16
@@ -34,6 +40,12 @@ services:
       POSTGRES_DB: billing_service_db
       POSTGRES_USER: billing_service_user
       POSTGRES_PASSWORD: billing_service_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U billing_service_user -d billing_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   orchestrator-postgres:
     image: postgres:16
@@ -52,6 +64,12 @@ services:
       POSTGRES_DB: orchestrator_service_db
       POSTGRES_USER: orchestrator_service_user
       POSTGRES_PASSWORD: orchestrator_service_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orchestrator_service_user -d orchestrator_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   payment-postgres:
     image: postgres:16
@@ -70,6 +88,12 @@ services:
       POSTGRES_DB: payment_service_db
       POSTGRES_USER: payment_service_user
       POSTGRES_PASSWORD: payment_service_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_service_user -d payment_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.4
@@ -149,9 +173,12 @@ services:
     container_name: saas-billing-subscription-service
     restart: on-failure
     depends_on:
-      - subscription-postgres
-      - kafka-init-topics
-      - schema-registry
+      subscription-postgres:
+        condition: service_healthy
+      kafka-init-topics:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
     ports:
       - "8082:8082"
     environment:
@@ -167,9 +194,12 @@ services:
     container_name: saas-billing-billing-service
     restart: on-failure
     depends_on:
-      - billing-postgres
-      - kafka-init-topics
-      - schema-registry
+      billing-postgres:
+        condition: service_healthy
+      kafka-init-topics:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
     ports:
       - "8084:8084"
     environment:
@@ -185,9 +215,12 @@ services:
     container_name: saas-billing-billing-orchestrator
     restart: on-failure
     depends_on:
-      - orchestrator-postgres
-      - kafka-init-topics
-      - schema-registry
+      orchestrator-postgres:
+        condition: service_healthy
+      kafka-init-topics:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
     ports:
       - "8085:8085"
     environment:
@@ -203,10 +236,14 @@ services:
     container_name: saas-billing-payment-service
     restart: on-failure
     depends_on:
-      - payment-postgres
-      - kafka-init-topics
-      - schema-registry
-      - wiremock
+      payment-postgres:
+        condition: service_healthy
+      kafka-init-topics:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
+      wiremock:
+        condition: service_started
     ports:
       - "8086:8086"
     environment:
@@ -218,13 +255,20 @@ services:
       dockerfile: saas-billing-system/deploy/cdc/connect/Dockerfile
     container_name: saas-billing-kafka-connect
     depends_on:
-      - kafka
-      - kafka-init-topics
-      - subscription-postgres
-      - billing-postgres
-      - orchestrator-postgres
-      - payment-postgres
-      - schema-registry
+      kafka:
+        condition: service_started
+      kafka-init-topics:
+        condition: service_completed_successfully
+      subscription-postgres:
+        condition: service_healthy
+      billing-postgres:
+        condition: service_healthy
+      orchestrator-postgres:
+        condition: service_healthy
+      payment-postgres:
+        condition: service_healthy
+      schema-registry:
+        condition: service_started
     ports:
       - "8083:8083"
     environment:
